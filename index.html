@@ -213,6 +213,37 @@ nav.bottombar button.active .indicator{
   position:absolute;
 }
 
+/* AUTH GATE */
+#auth-gate{
+  position:fixed;inset:0;z-index:100;
+  background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:24px;
+}
+#auth-gate.hidden{display:none;}
+.auth-box{width:100%;max-width:340px;text-align:center;}
+.auth-box .emblem{width:72px;height:72px;margin:0 auto 20px;}
+.auth-box .emblem img{width:100%;height:100%;object-fit:contain;}
+.auth-box h2{font-size:16px;margin:0 0 6px;text-transform:uppercase;letter-spacing:0.02em;}
+.auth-box p.sub{font-size:12px;color:var(--text-secondary);margin:0 0 24px;line-height:1.5;}
+.auth-box input{
+  width:100%;height:48px;background:var(--surface-2);border:1px solid var(--border);
+  border-radius:8px;color:var(--text-primary);text-align:center;font-size:18px;letter-spacing:0.12em;
+  text-transform:uppercase;outline:none;margin-bottom:12px;font-weight:700;
+}
+.auth-box input::placeholder{color:var(--text-muted);letter-spacing:0.04em;font-weight:400;font-size:13px;text-transform:none;}
+.auth-box .auth-error{
+  display:none;color:var(--zoloto);font-size:12px;margin:-4px 0 14px;line-height:1.5;
+}
+.auth-box .auth-error.show{display:block;}
+.auth-spinner{
+  display:none;width:20px;height:20px;border:2px solid rgba(240,238,230,0.25);
+  border-top-color:var(--zoloto);border-radius:50%;margin:0 auto;
+  animation:spin .7s linear infinite;
+}
+.auth-spinner.show{display:block;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
 /* offline banner */
 #offline-banner{
   display:none;background:var(--zoloto);color:var(--zoloto-on);text-align:center;
@@ -229,7 +260,20 @@ nav.bottombar button.active .indicator{
 </head>
 <body>
 <div id="offline-banner">Немає з'єднання — показані збережені дані</div>
-<div id="app">
+
+<div id="auth-gate">
+  <div class="auth-box">
+    <div class="emblem"><img src="icons/icon-192.png" alt="Емблема"></div>
+    <h2>Нагороди 57 ОМПБр</h2>
+    <p class="sub">Введіть персональний код доступу, наданий адміністратором</p>
+    <input type="text" id="auth-code-input" placeholder="Наприклад: A7K9X2QM" maxlength="12" autocomplete="off" autocapitalize="characters">
+    <p class="auth-error" id="auth-error">Невірний код доступу. Перевірте і спробуйте ще раз.</p>
+    <button class="btn-primary" id="auth-submit-btn" onclick="submitAuthCode()">Увійти</button>
+    <div class="auth-spinner" id="auth-spinner" style="margin-top:16px;"></div>
+  </div>
+</div>
+
+<div id="app" style="display:none;">
 
   <header class="topbar">
     <div class="emblem"><img src="icons/icon-192.png" alt="Емблема"></div>
@@ -400,14 +444,108 @@ nav.bottombar button.active .indicator{
 </div>
 
 <script>
-// ---------- Демо-дані (буде замінено на API Google Apps Script) ----------
-const DEMO_USER = { name: "Сергій Іваненко", unit: "1-й стрілецький батальйон" };
+// ---------- Налаштування API ----------
+const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbz8SA88s95gIyO6gNg7LnSEuHt9GNqSfg5heGQhiUAlN0UnlvDg08fs_9OMV3TziXPS/exec';
+const AUTH_STORAGE_KEY = 'nagorody_auth';
 
-document.getElementById('user-name').textContent = DEMO_USER.name;
-document.getElementById('user-unit').textContent = DEMO_USER.unit;
-document.getElementById('last-updated').textContent =
-  "Дані оновлено: " + new Date().toLocaleDateString('uk-UA') + " " +
-  new Date().toLocaleTimeString('uk-UA', {hour:'2-digit', minute:'2-digit'});
+// ---------- Авторизація ----------
+function showApp(user){
+  document.getElementById('user-name').textContent = user.name || '—';
+  document.getElementById('user-unit').textContent = user.unit || 'Підрозділ не визначено';
+  document.getElementById('last-updated').textContent =
+    "Дані оновлено: " + new Date().toLocaleDateString('uk-UA') + " " +
+    new Date().toLocaleTimeString('uk-UA', {hour:'2-digit', minute:'2-digit'});
+  document.getElementById('auth-gate').classList.add('hidden');
+  document.getElementById('app').style.display = 'flex';
+}
+
+function saveAuth(code, user){
+  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ code: code, user: user, savedAt: Date.now() }));
+}
+
+function getSavedAuth(){
+  try {
+    var raw = localStorage.getItem(AUTH_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch(e){ return null; }
+}
+
+function setAuthLoading(isLoading){
+  document.getElementById('auth-submit-btn').style.display = isLoading ? 'none' : 'block';
+  document.getElementById('auth-spinner').classList.toggle('show', isLoading);
+  document.getElementById('auth-code-input').disabled = isLoading;
+}
+
+function showAuthError(msg){
+  var el = document.getElementById('auth-error');
+  el.textContent = msg || 'Невірний код доступу. Перевірте і спробуйте ще раз.';
+  el.classList.add('show');
+}
+
+function hideAuthError(){
+  document.getElementById('auth-error').classList.remove('show');
+}
+
+function checkAccessCode(code){
+  hideAuthError();
+  setAuthLoading(true);
+
+  var url = API_BASE_URL + '?action=checkAccess&code=' + encodeURIComponent(code);
+
+  fetch(url)
+    .then(function(res){ return res.json(); })
+    .then(function(data){
+      setAuthLoading(false);
+      if (data && data.ok) {
+        saveAuth(code, data.user);
+        showApp(data.user);
+      } else {
+        showAuthError();
+      }
+    })
+    .catch(function(err){
+      setAuthLoading(false);
+      showAuthError('Немає з\'єднання з сервером. Перевірте інтернет і спробуйте ще раз.');
+    });
+}
+
+function submitAuthCode(){
+  var code = document.getElementById('auth-code-input').value.trim();
+  if (!code) {
+    showAuthError('Введіть код доступу.');
+    return;
+  }
+  checkAccessCode(code);
+}
+
+document.getElementById('auth-code-input').addEventListener('keydown', function(e){
+  if (e.key === 'Enter') submitAuthCode();
+});
+
+// ---------- Ініціалізація авторизації при відкритті ----------
+(function initAuth(){
+  // 1. Код у посиланні (персональне запрошення) — найвищий пріоритет
+  var urlParams = new URLSearchParams(location.search);
+  var urlCode = urlParams.get('code');
+
+  if (urlCode) {
+    // прибираємо код з адресного рядка одразу, щоб не лишався в історії/скріншотах
+    var cleanUrl = location.origin + location.pathname + location.hash;
+    history.replaceState(null, '', cleanUrl);
+    checkAccessCode(urlCode);
+    return;
+  }
+
+  // 2. Збережена сесія на пристрої — довіряємо офлайн, без повторного запиту
+  var saved = getSavedAuth();
+  if (saved && saved.user) {
+    showApp(saved.user);
+    return;
+  }
+
+  // 3. Нічого немає — показуємо форму ручного вводу коду
+  document.getElementById('auth-code-input').focus();
+})();
 
 // ---------- Навігація (hash-based SPA роутер) ----------
 const SCREENS = ['home','search','stats','reference','docs','more'];
