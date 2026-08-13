@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#4D4634">
+<title>Немає з'єднання — Нагороди 57 ОМПБр</title>
+<style>
+  :root{
+    --mundir:#4D4634; --zoloto:#F39200; --bg:#211F19;
+    --surface-1:#2B2820; --text-primary:#F0EEE6; --text-secondary:#B9B6A5;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;}
+  body{
+    background:var(--bg); color:var(--text-primary);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    display:flex; align-items:center; justify-content:center; padding:24px;
+  }
+  .box{
+    max-width:340px; text-align:center; background:var(--surface-1);
+    border:1px solid var(--mundir); border-radius:12px; padding:32px 24px;
+  }
+  .icon{
+    width:56px; height:56px; margin:0 auto 16px; color:var(--zoloto);
+  }
+  h1{font-size:16px; margin:0 0 8px; text-transform:uppercase; letter-spacing:0.02em;}
+  p{font-size:13px; color:var(--text-secondary); line-height:1.6; margin:0 0 20px;}
+  button{
+    background:var(--zoloto); color:#4A2E00; border:none; border-radius:8px;
+    height:44px; padding:0 24px; font-size:13px; font-weight:700; text-transform:uppercase;
+    cursor:pointer;
+  }
+</style>
+</head>
+<body>
+  <div class="box">
+    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9z"/>
+      <path d="M5 13l2 2a9.9 9.9 0 0110 0l2-2a12.87 12.87 0 00-14 0z"/>
+      <path d="M9 17l3 3 3-3a4.24 4.24 0 00-6 0z"/>
+      <path d="M1 1l22 22" stroke="#F39200"/>
+    </svg>
+    <h1>Немає з'єднання</h1>
+    <p>Перевірте підключення до інтернету. Раніше відкриті розділи застосунку можуть бути доступні офлайн.</p>
+    <button onclick="location.href='./index.html'">Спробувати знову</button>
+  </div>
+</body>
+</html>
