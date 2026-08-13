@@ -192,6 +192,43 @@ main{flex:1;overflow-y:auto;padding:16px 16px calc(90px + var(--safe-bottom));}
   text-align:center;color:var(--text-muted);font-size:12px;padding:40px 20px;line-height:1.6;
 }
 
+/* Search results */
+.results-meta{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.03em;margin:0 0 10px;}
+.person-card{
+  background:var(--surface-1);border:1px solid var(--border-soft);border-radius:var(--radius);
+  margin-bottom:12px;overflow:hidden;
+}
+.person-card .person-head{
+  padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;
+}
+.person-card .person-info{flex:1;min-width:0;}
+.person-card .person-name{font-size:14px;font-weight:700;margin:0 0 3px;}
+.person-card .person-unit{font-size:12px;color:var(--text-secondary);margin:0;}
+.person-card .person-count{
+  flex-shrink:0;background:var(--surface-2);border:1px solid var(--border);border-radius:6px;
+  padding:4px 8px;font-size:11px;font-weight:700;color:var(--zoloto);white-space:nowrap;
+}
+.person-card .person-chevron{
+  width:16px;height:16px;color:var(--text-muted);flex-shrink:0;transition:transform .15s ease;
+}
+.person-card.expanded .person-chevron{transform:rotate(90deg);}
+.person-card .awards-list{display:none;border-top:1px solid var(--border-soft);}
+.person-card.expanded .awards-list{display:block;}
+.award-row{
+  padding:12px 16px;border-bottom:1px solid var(--surface-2);
+}
+.award-row:last-child{border-bottom:none;}
+.award-row .award-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:4px;}
+.award-row .award-name{font-size:13px;font-weight:600;line-height:1.35;}
+.award-row .award-order{font-size:11px;color:var(--text-muted);}
+.award-tag{
+  flex-shrink:0;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.02em;
+  padding:3px 7px;border-radius:4px;white-space:nowrap;
+}
+.award-tag.tier-top{background:var(--zoloto);color:var(--zoloto-on);}
+.award-tag.tier-other{background:var(--step);color:#E8E6D8;}
+.search-loading{text-align:center;padding:24px;color:var(--text-muted);font-size:12px;}
+
 /* Bottom nav */
 nav.bottombar{
   position:fixed;left:0;right:0;bottom:0;
@@ -359,9 +396,9 @@ nav.bottombar button.active .indicator{
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
           <input type="text" id="search-input" placeholder="Введіть прізвище, ім'я...">
         </div>
-        <button class="btn-primary" onclick="alert('Пошук буде підключено на наступному етапі (API Google Apps Script)')">Пошук</button>
+        <button class="btn-primary" onclick="performSearch()">Пошук</button>
       </div>
-      <p class="placeholder-note">Результати пошуку з'являться тут після підключення бекенду на наступному етапі.</p>
+      <div id="search-results"></div>
     </section>
 
     <!-- STATISTICS -->
@@ -569,6 +606,7 @@ function goSearch(){
   var val = document.getElementById('home-search-input').value;
   document.getElementById('search-input').value = val;
   navigate('search');
+  if (val && val.trim().length >= 2) performSearch();
 }
 
 window.addEventListener('hashchange', function(){
@@ -589,6 +627,99 @@ function updateOnlineStatus(){
 window.addEventListener('online', updateOnlineStatus);
 window.addEventListener('offline', updateOnlineStatus);
 updateOnlineStatus();
+
+// ---------- Пошук військовослужбовця ----------
+function escapeHtml(str){
+  return String(str == null ? '' : str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function getAuthCode(){
+  var saved = getSavedAuth();
+  return saved ? saved.code : '';
+}
+
+function performSearch(){
+  var query = document.getElementById('search-input').value.trim();
+  var container = document.getElementById('search-results');
+
+  if (query.length < 2) {
+    container.innerHTML = '<p class="placeholder-note">Введіть щонайменше 2 символи для пошуку.</p>';
+    return;
+  }
+
+  container.innerHTML = '<div class="search-loading">Шукаю...</div>';
+
+  var url = API_BASE_URL + '?action=search&code=' + encodeURIComponent(getAuthCode()) + '&query=' + encodeURIComponent(query);
+
+  fetch(url)
+    .then(function(res){ return res.json(); })
+    .then(function(data){ renderSearchResults(data); })
+    .catch(function(){
+      container.innerHTML = '<p class="placeholder-note">Немає з\'єднання з сервером. Перевірте інтернет і спробуйте ще раз.</p>';
+    });
+}
+
+document.getElementById('search-input').addEventListener('keydown', function(e){
+  if (e.key === 'Enter') performSearch();
+});
+
+var CATEGORY_TOP_TIERS = ['Державна нагорода', 'Нагорода від МОУ', 'Нагорода від ГК ЗСУ'];
+
+function renderSearchResults(data){
+  var container = document.getElementById('search-results');
+
+  if (!data || !data.ok) {
+    if (data && data.error === 'too_many_results') {
+      container.innerHTML = '<p class="placeholder-note">Забагато збігів (' + data.count + '). Введіть прізвище та ім\'я повністю.</p>';
+    } else if (data && data.error === 'unauthorized') {
+      container.innerHTML = '<p class="placeholder-note">Сесія застаріла. Перезайдіть у застосунок за своїм посиланням.</p>';
+    } else {
+      container.innerHTML = '<p class="placeholder-note">Сталася помилка пошуку. Спробуйте ще раз.</p>';
+    }
+    return;
+  }
+
+  if (data.count === 0) {
+    container.innerHTML = '<p class="placeholder-note">Нічого не знайдено. Перевірте написання прізвища.</p>';
+    return;
+  }
+
+  var html = '<p class="results-meta">Знайдено: ' + data.count + '</p>';
+
+  data.results.forEach(function(person, idx){
+    var expanded = data.results.length === 1 ? ' expanded' : '';
+    html += '<div class="person-card' + expanded + '" id="person-' + idx + '">';
+    html += '  <div class="person-head" onclick="togglePerson(' + idx + ')">';
+    html += '    <div class="person-info">';
+    html += '      <p class="person-name">' + escapeHtml(person.name) + '</p>';
+    html += '      <p class="person-unit">' + escapeHtml(person.unit || 'Підрозділ не вказано') + '</p>';
+    html += '    </div>';
+    html += '    <span class="person-count">' + person.totalAwards + '</span>';
+    html += '    <svg class="person-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>';
+    html += '  </div>';
+    html += '  <div class="awards-list">';
+    person.awards.forEach(function(a){
+      var isTop = CATEGORY_TOP_TIERS.indexOf(a.category) !== -1;
+      html += '    <div class="award-row">';
+      html += '      <div class="award-top">';
+      html += '        <span class="award-name">' + escapeHtml(a.name || 'Назва відсутня') + '</span>';
+      html += '        <span class="award-tag ' + (isTop ? 'tier-top' : 'tier-other') + '">' + escapeHtml(a.category || 'інше') + '</span>';
+      html += '      </div>';
+      html += '      <p class="award-order">' + escapeHtml(a.order || 'дані про наказ відсутні') + (a.year ? ' · ' + escapeHtml(a.year) : '') + '</p>';
+      html += '    </div>';
+    });
+    html += '  </div>';
+    html += '</div>';
+  });
+
+  container.innerHTML = html;
+}
+
+function togglePerson(idx){
+  document.getElementById('person-' + idx).classList.toggle('expanded');
+}
 
 // ---------- Реєстрація Service Worker ----------
 if ('serviceWorker' in navigator) {
