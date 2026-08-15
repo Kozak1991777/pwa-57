@@ -4,6 +4,20 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#1A1B17">
+<script>
+(function(){
+  try {
+    var saved = localStorage.getItem('nagorody_theme');
+    if (saved === 'light') {
+      document.documentElement.setAttribute('data-theme', 'light');
+      document.addEventListener('DOMContentLoaded', function(){
+        var m = document.querySelector('meta[name="theme-color"]');
+        if (m) m.setAttribute('content', '#F2EFE4');
+      });
+    }
+  } catch(e) {}
+})();
+</script>
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -18,6 +32,8 @@
 :root{
   --step:#817847;
   --mundir:#4D4634;
+  --header-grad-a:#25251D;
+  --header-grad-b:#1A1B17;
   --zoloto:#DF7E01;
   --zoloto-bright:#F29A00;
   --zoloto-muted:#A79A5B;
@@ -33,6 +49,25 @@
   --radius:7px;
   --safe-top:env(safe-area-inset-top,0px);
   --safe-bottom:env(safe-area-inset-bottom,0px);
+}
+
+html[data-theme="light"]{
+  --step:#6A653A;
+  --mundir:#CFC8A6;
+  --header-grad-a:#F2EFE4;
+  --header-grad-b:#E6E2D2;
+  --zoloto:#F39200;
+  --zoloto-bright:#D97D00;
+  --zoloto-muted:#8F895F;
+  --bg:#F2EFE4;
+  --surface-1:#E6E2D2;
+  --surface-2:#D8D3BD;
+  --border:rgba(106,101,58,0.28);
+  --border-soft:rgba(106,101,58,0.18);
+  --text-primary:#1F1F1F;
+  --text-secondary:#5B5A4A;
+  --text-muted:#8F895F;
+  --zoloto-on:#FFFFFF;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 html,body{margin:0;padding:0;height:100%;background:var(--bg);}
@@ -57,7 +92,7 @@ button{font-family:inherit;}
 
 /* HEADER */
 header.topbar{
-  background:linear-gradient(135deg, #25251D 0%, #1A1B17 100%);
+  background:linear-gradient(135deg, var(--header-grad-a) 0%, var(--header-grad-b) 100%);
   border-bottom:2px solid var(--zoloto);
   padding:calc(14px + var(--safe-top)) 16px 14px;
   display:flex;
@@ -111,7 +146,7 @@ main{flex:1;overflow-y:auto;padding:16px 16px calc(90px + var(--safe-bottom));}
 .welcome-content{position:relative;z-index:2;width:68%;}
 .welcome-trident{
   position:absolute;right:-40px;top:50%;transform:translateY(-50%);
-  width:230px;height:230px;
+  width:230px;height:230px;color:var(--text-primary);
   z-index:1;pointer-events:none;
 }
 .welcome-trident .watermark{width:100%;height:100%;opacity:0.13;}
@@ -140,7 +175,7 @@ main{flex:1;overflow-y:auto;padding:16px 16px calc(90px + var(--safe-bottom));}
 /* Search card */
 .search-input-row{
   display:flex;align-items:center;gap:8px;
-  background:rgba(55,55,52,0.35);border:1px solid var(--border);border-radius:6px;
+  background:var(--surface-2);border:1px solid var(--border);border-radius:6px;
   padding:0 14px;height:48px;margin-bottom:12px;
 }
 .search-input-row svg{width:18px;height:18px;color:var(--text-muted);flex-shrink:0;}
@@ -245,6 +280,15 @@ main{flex:1;overflow-y:auto;padding:16px 16px calc(90px + var(--safe-bottom));}
 .award-tag.tier-top{background:var(--zoloto);color:var(--zoloto-on);}
 .award-tag.tier-other{background:var(--step);color:#E8E6D8;}
 .search-loading{text-align:center;padding:24px;color:var(--text-muted);font-size:12px;}
+
+/* Theme toggle */
+.theme-toggle{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.theme-btn{
+  height:44px;border-radius:7px;border:1px solid var(--border);background:var(--surface-2);
+  color:var(--text-secondary);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:7px;
+}
+.theme-btn.active{background:var(--zoloto);color:var(--zoloto-on);border-color:var(--zoloto);}
 
 /* Bottom nav */
 nav.bottombar{
@@ -356,7 +400,7 @@ nav.bottombar button.active .indicator{
           </div>
         </div>
         <div class="welcome-trident">
-          <svg class="watermark" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg"><path fill="#F0EEE6" d="M179.6,274.6h-61.2V119.1c23.5,10.6,35,34.2,35,71.2c0,12.9-1.3,27.1-4.4,49.9h33l-1.1-42.8c-0.4-15.5-2.9-48.6-2.9-53.2c0-19.7,7.3-37.5,21.5-52.8c14.2,15.3,21.5,33,21.5,52.8c0,4.7-2.4,37.7-2.9,53.2l-1.1,42.8h33c-3.1-22.8-4.4-37-4.4-49.9c0-37,11.5-60.5,35-71.2v155.5h-61.2c-4.2,12.2-11.1,24.6-20,35.3C190.7,299.2,183.8,286.8,179.6,274.6"/></svg>
+          <svg class="watermark" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M179.6,274.6h-61.2V119.1c23.5,10.6,35,34.2,35,71.2c0,12.9-1.3,27.1-4.4,49.9h33l-1.1-42.8c-0.4-15.5-2.9-48.6-2.9-53.2c0-19.7,7.3-37.5,21.5-52.8c14.2,15.3,21.5,33,21.5,52.8c0,4.7-2.4,37.7-2.9,53.2l-1.1,42.8h33c-3.1-22.8-4.4-37-4.4-49.9c0-37,11.5-60.5,35-71.2v155.5h-61.2c-4.2,12.2-11.1,24.6-20,35.3C190.7,299.2,183.8,286.8,179.6,274.6"/></svg>
         </div>
       </div>
 
@@ -470,10 +514,18 @@ nav.bottombar button.active .indicator{
         <div class="row-text"><p class="row-title">Документи</p></div>
         <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
       </div>
-      <div class="row-card" onclick="alert('Розділ буде додано на наступному етапі')">
-        <div class="icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09c0 .68.39 1.29 1 1.51.63.24 1.35.11 1.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06c-.44.47-.57 1.19-.33 1.82.22.61.83 1 1.51 1H21a2 2 0 010 4h-.09c-.68 0-1.29.39-1.51 1z"/></svg></div>
-        <div class="row-text"><p class="row-title">Налаштування</p></div>
-        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+      <div class="card">
+        <p class="card-title">Тема застосунку</p>
+        <div class="theme-toggle">
+          <button class="theme-btn" id="theme-btn-dark" onclick="setTheme('dark')">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+            Темна
+          </button>
+          <button class="theme-btn" id="theme-btn-light" onclick="setTheme('light')">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+            Світла
+          </button>
+        </div>
       </div>
       <p class="placeholder-note">Профіль, вихід та адмін-панель (для адміністраторів) з'являться тут на наступних етапах.</p>
     </section>
@@ -505,6 +557,21 @@ nav.bottombar button.active .indicator{
 // ---------- Налаштування API ----------
 const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbwJktVQ9C6kpWi8oVb3lSk8CGDxqwkh35x6JwnQgEemlP0ky8qtgK30ZzDseDY9LSXK/exec';
 const AUTH_STORAGE_KEY = 'nagorody_auth';
+const THEME_STORAGE_KEY = 'nagorody_theme';
+
+// ---------- Тема застосунку ----------
+function setTheme(theme){
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem(THEME_STORAGE_KEY, theme);
+  var metaTheme = document.querySelector('meta[name="theme-color"]');
+  if (metaTheme) metaTheme.setAttribute('content', theme === 'light' ? '#F2EFE4' : '#1A1B17');
+  var darkBtn = document.getElementById('theme-btn-dark');
+  var lightBtn = document.getElementById('theme-btn-light');
+  if (darkBtn && lightBtn) {
+    darkBtn.classList.toggle('active', theme !== 'light');
+    lightBtn.classList.toggle('active', theme === 'light');
+  }
+}
 
 // ---------- Авторизація ----------
 function showApp(user){
@@ -588,6 +655,9 @@ document.getElementById('auth-code-input').addEventListener('keydown', function(
 
 // ---------- Ініціалізація авторизації при відкритті ----------
 (function initAuth(){
+  var savedTheme = localStorage.getItem(THEME_STORAGE_KEY) || 'dark';
+  setTheme(savedTheme);
+
   // 1. Код у посиланні (персональне запрошення) — найвищий пріоритет
   var urlParams = new URLSearchParams(location.search);
   var urlCode = urlParams.get('code');
