@@ -405,15 +405,6 @@ nav.bottombar button.active .indicator{
         </div>
       </div>
 
-      <div class="card">
-        <p class="card-title">Пошук військовослужбовця</p>
-        <div class="search-input-row">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
-          <input type="text" id="home-search-input" placeholder="Введіть прізвище, ім'я...">
-        </div>
-        <button class="btn-primary" onclick="goSearch()">Пошук</button>
-      </div>
-
       <div class="grid-2">
         <div class="tile" onclick="navigate('stats')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="5" width="3" height="13"/></svg>
@@ -733,13 +724,6 @@ function navigate(screen){
   });
   document.getElementById('main').scrollTop = 0;
   history.replaceState(null, '', '#' + screen);
-}
-
-function goSearch(){
-  var val = document.getElementById('home-search-input').value;
-  document.getElementById('search-input').value = val;
-  navigate('search');
-  if (val && val.trim().length >= 2) performSearch();
 }
 
 window.addEventListener('hashchange', function(){
