@@ -242,6 +242,7 @@ main{flex:1;overflow-y:auto;padding:16px 16px calc(90px + var(--safe-bottom));}
 .placeholder-note{
   text-align:center;color:var(--text-muted);font-size:12px;padding:40px 20px;line-height:1.6;
 }
+.body-note{color:var(--text-secondary);font-size:13px;line-height:1.55;margin:0;}
 
 /* Search results */
 .results-meta{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.03em;margin:0 0 10px;}
@@ -420,10 +421,21 @@ nav.bottombar button.active .indicator{
           <p class="row-sub" style="margin:0;font-size:11px;">Загальна статистика та рейтинги</p>
         </div>
         <div class="tile" onclick="navigate('reference')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15l-5.878 3.09 1.123-6.545L2.489 6.91l6.572-.955L12 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M9 13.5L7 22l5-3 5 3-2-8.5"/></svg>
           <p class="tile-title">Довідник нагород</p>
           <p class="row-sub" style="margin:0;font-size:11px;">Опис та порядок нагород</p>
         </div>
+      </div>
+
+      <div class="row-card" onclick="navigate('howto')">
+        <div class="icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+        </div>
+        <div class="row-text">
+          <p class="row-title">Як нагородити?</p>
+          <p class="row-sub">Порядок дій для подання на нагороду</p>
+        </div>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
       </div>
 
       <div class="row-card" onclick="navigate('docs')">
@@ -499,20 +511,48 @@ nav.bottombar button.active .indicator{
       <p class="placeholder-note">Посилання на зразки документів з'являться тут після підключення бекенду.</p>
     </section>
 
-    <!-- MORE -->
+    <!-- HOW TO -->
+    <section class="screen" id="screen-howto">
+      <div class="screen-header">
+        <button class="back-btn" onclick="navigate('home')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <h2>Як нагородити?</h2>
+      </div>
+
+      <div class="card">
+        <p class="card-title">Крок 1. Визначення виду нагороди</p>
+        <p class="body-note">Командир підрозділу вирішує це самостійно, зважаючи на вагомість героїчного вчинку підлеглого військовослужбовця.</p>
+      </div>
+
+      <div class="card">
+        <p class="card-title">Крок 2. Перевірка попередніх нагород</p>
+        <p class="body-note">Перевірте через розділ "Пошук" у застосунку, чи не нагороджувався військовослужбовець цією ж нагородою раніше.</p>
+      </div>
+
+      <div class="card">
+        <p class="card-title">Крок 3. Підготовка та подання документів</p>
+        <p class="body-note">Завантажте зразки у розділі "Документи". Спочатку подається рапорт на командира бригади за підписом командира підрозділу. Якщо рапорт погоджено, готується подання відповідного зразку на командира бригади.</p>
+      </div>
+
+      <div class="card" style="border-color:var(--zoloto);">
+        <p class="card-title" style="color:var(--zoloto);">Важливо</p>
+        <p class="body-note">До подання на державні нагороди додаємо копії документів: перша сторінка паспорта + ІПН. У разі посмертного нагородження — свідоцтво про смерть з ДРАГС (лікарське свідоцтво про смерть не підходить).</p>
+        <p class="body-note" style="margin-top:8px;">Сканкопії мають бути гарної якості. Якщо текст розмитий, вищі штаби дані копії не приймуть і, відповідно, кандидата до нагородження не погодять.</p>
+      </div>
+
+      <div class="card">
+        <p class="card-title">Медаль «За поранення»</p>
+        <p class="body-note">До подання обов'язково додається висновок ВЛК нового зразку, в якому зазначено ступінь важкості поранення (легке або важке).</p>
+        <p class="body-note" style="margin-top:8px;">Якщо у наявному висновку ВЛК ступінь важкості поранення не зазначено — необхідно отримати довідку від медичної служби. На підставі наявного висновку ВЛК медична служба самостійно визначає ступінь важкості та видає відповідну довідку.</p>
+        <p class="body-note" style="margin-top:8px;">Зразки подання та довідки медичної служби доступні у розділі "Документи".</p>
+      </div>
+    </section>
+
+    <!-- SETTINGS (раніше "Ще") -->
     <section class="screen" id="screen-more">
       <div class="screen-header">
-        <h2>Ще</h2>
-      </div>
-      <div class="row-card" onclick="navigate('stats')">
-        <div class="icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="5" width="3" height="13"/></svg></div>
-        <div class="row-text"><p class="row-title">Статистика</p></div>
-        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
-      </div>
-      <div class="row-card" onclick="navigate('docs')">
-        <div class="icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg></div>
-        <div class="row-text"><p class="row-title">Документи</p></div>
-        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+        <h2>Налаштування</h2>
       </div>
       <div class="card">
         <p class="card-title">Тема застосунку</p>
@@ -527,7 +567,7 @@ nav.bottombar button.active .indicator{
           </button>
         </div>
       </div>
-      <p class="placeholder-note">Профіль, вихід та адмін-панель (для адміністраторів) з'являться тут на наступних етапах.</p>
+      <p class="placeholder-note">Керування розсилкою дайджесту, профіль та адмін-панель (для адміністраторів) з'являться тут на наступних етапах.</p>
     </section>
 
   </main>
@@ -541,13 +581,9 @@ nav.bottombar button.active .indicator{
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
       <span>Пошук</span>
     </button>
-    <button data-screen="reference" onclick="navigate('reference')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15l-5.878 3.09 1.123-6.545L2.489 6.91l6.572-.955L12 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/></svg>
-      <span>Довідник</span>
-    </button>
     <button data-screen="more" onclick="navigate('more')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>
-      <span>Ще</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09c0 .68.39 1.29 1 1.51.63.24 1.35.11 1.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06c-.44.47-.57 1.19-.33 1.82.22.61.83 1 1.51 1H21a2 2 0 010 4h-.09c-.68 0-1.29.39-1.51 1z"/></svg>
+      <span>Налаштування</span>
     </button>
   </nav>
 
@@ -682,8 +718,8 @@ document.getElementById('auth-code-input').addEventListener('keydown', function(
 })();
 
 // ---------- Навігація (hash-based SPA роутер) ----------
-const SCREENS = ['home','search','stats','reference','docs','more'];
-const NAV_SCREENS = ['home','search','reference','more']; // ті, що мають кнопку в bottombar
+const SCREENS = ['home','search','stats','reference','docs','howto','more'];
+const NAV_SCREENS = ['home','search','more']; // ті, що мають кнопку в bottombar
 
 function navigate(screen){
   if (SCREENS.indexOf(screen) === -1) screen = 'home';
@@ -692,7 +728,7 @@ function navigate(screen){
   });
   document.querySelectorAll('nav.bottombar button').forEach(btn => {
     var target = btn.getAttribute('data-screen');
-    var isActive = (target === screen) || (NAV_SCREENS.indexOf(screen) === -1 && target === 'more' && ['stats','docs'].indexOf(screen) !== -1);
+    var isActive = (target === screen) || (NAV_SCREENS.indexOf(screen) === -1 && target === 'more' && ['stats','reference','docs','howto'].indexOf(screen) !== -1);
     btn.classList.toggle('active', isActive);
   });
   document.getElementById('main').scrollTop = 0;
