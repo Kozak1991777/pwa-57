@@ -773,11 +773,6 @@ function downloadAwardCard(idx){
         return;
       }
 
-      if (data.debug && data.debug.length) {
-        console.log('AWARD CARD DEBUG:\n' + data.debug.join('\n'));
-        alert('ДІАГНОСТИКА (тимчасово):\n\n' + data.debug.join('\n'));
-      }
-
       var byteChars = atob(data.pdfBase64);
       var byteNumbers = new Array(byteChars.length);
       for (var i = 0; i < byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i);
