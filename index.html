@@ -117,10 +117,12 @@ main{flex:1;overflow-y:auto;padding:16px 16px calc(90px + var(--safe-bottom));}
 .welcome-trident .watermark{width:100%;height:100%;opacity:0.13;}
 .welcome-card .eyebrow{font-size:13px;font-weight:600;color:var(--zoloto-muted);text-transform:uppercase;letter-spacing:0.05em;margin:0;}
 .welcome-card h2{
-  margin:5px 0 13px;font-size:clamp(18px, 6vw, 26px);font-weight:800;letter-spacing:0.003em;line-height:1.15;
+  margin:5px 0 13px;font-size:clamp(20px, 6.2vw, 26px);font-weight:800;letter-spacing:0.003em;line-height:1.15;
   border-bottom:3px solid var(--zoloto);padding-bottom:12px;display:inline-block;
-  max-width:100%;
+  white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;
 }
+.welcome-card h2.name-md{font-size:clamp(16px, 4.8vw, 20px);}
+.welcome-card h2.name-sm{font-size:clamp(13px, 4vw, 16px);}
 .welcome-card .unit-row{display:flex;align-items:center;gap:11px;}
 .welcome-card .unit-badge{
   width:36px;height:36px;border-radius:6px;background:var(--step);
@@ -130,8 +132,7 @@ main{flex:1;overflow-y:auto;padding:16px 16px calc(90px + var(--safe-bottom));}
 .welcome-card .unit-name{font-size:14px;font-weight:600;color:var(--zoloto-muted);line-height:1.3;letter-spacing:0.03em;text-transform:uppercase;}
 
 @media (max-width:400px){
-  .welcome-content{width:66%;}
-  .welcome-trident{width:160px;height:160px;right:-32px;}
+  .welcome-trident{width:150px;height:150px;right:-30px;}
   .welcome-trident .watermark{opacity:0.12;}
   .welcome-card .unit-name{font-size:11px;}
 }
@@ -507,7 +508,13 @@ const AUTH_STORAGE_KEY = 'nagorody_auth';
 
 // ---------- Авторизація ----------
 function showApp(user){
-  document.getElementById('user-name').textContent = user.name || '—';
+  var nameEl = document.getElementById('user-name');
+  var name = user.name || '—';
+  nameEl.textContent = name;
+  nameEl.classList.remove('name-md', 'name-sm');
+  if (name.length > 24) nameEl.classList.add('name-sm');
+  else if (name.length > 16) nameEl.classList.add('name-md');
+
   document.getElementById('user-unit').textContent = user.unit || 'Підрозділ не визначено';
   document.getElementById('last-updated').textContent =
     "Дані оновлено: " + new Date().toLocaleDateString('uk-UA') + " " +
