@@ -826,7 +826,7 @@ function renderSearchResults(data){
       html += '        <span class="award-name">' + escapeHtml(a.name || 'Назва відсутня') + '</span>';
       html += '        <span class="award-tag ' + (isTop ? 'tier-top' : 'tier-other') + '">' + escapeHtml(a.category || 'інше') + '</span>';
       html += '      </div>';
-      html += '      <p class="award-order">' + escapeHtml(a.order || 'дані про наказ відсутні') + (a.year ? ' · ' + escapeHtml(a.year) : '') + '</p>';
+      html += '      <p class="award-order">' + escapeHtml(a.order || 'дані про наказ відсутні') + '</p>';
       html += '    </div>';
     });
     html += '    <div class="award-card-download">';
