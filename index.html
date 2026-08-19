@@ -405,11 +405,13 @@ nav.bottombar button.active .indicator{
         </div>
       </div>
 
-      <div class="card" onclick="goToSearchFromHome()">
+      <div class="card">
+        <p class="eyebrow" style="margin-bottom:10px;">Пошук військовослужбовця</p>
         <div class="search-input-row">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
-          <input type="text" id="home-search-input" placeholder="Введіть прізвище, ім'я..." readonly onclick="event.stopPropagation(); goToSearchFromHome();">
+          <input type="text" id="home-search-input" placeholder="Введіть прізвище, ім'я..." onkeydown="if(event.key==='Enter'){goToSearchFromHome(this.value);}">
         </div>
+        <button class="btn-primary" style="margin-top:12px;width:100%;" onclick="goToSearchFromHome(document.getElementById('home-search-input').value)">Пошук</button>
       </div>
 
       <div class="grid-2">
@@ -708,10 +710,17 @@ document.getElementById('auth-code-input').addEventListener('keydown', function(
 const SCREENS = ['home','search','stats','reference','docs','howto','more'];
 const NAV_SCREENS = ['home','stats','more']; // ті, що мають кнопку в bottombar
 
-function goToSearchFromHome(){
+function goToSearchFromHome(prefill){
   navigate('search');
   var real = document.getElementById('search-input');
-  if (real) real.focus();
+  if (!real) return;
+  if (prefill && prefill.trim()) {
+    real.value = prefill.trim();
+    real.focus();
+    performSearch();
+  } else {
+    real.focus();
+  }
 }
 
 function navigate(screen){
