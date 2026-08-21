@@ -215,6 +215,7 @@ main{flex:1;overflow-y:auto;padding:16px 16px calc(90px + var(--safe-bottom));}
   display:flex;align-items:center;justify-content:center;color:var(--zoloto);
 }
 .row-card .icon-wrap svg{width:20px;height:20px;}
+.row-card .icon-wrap img{width:100%;height:100%;object-fit:contain;border-radius:8px;}
 .row-card .row-text{flex:1;min-width:0;}
 .row-card .row-title{font-size:14px;font-weight:700;text-transform:uppercase;margin:0 0 3px;}
 .row-card .row-sub{font-size:12px;color:var(--text-secondary);margin:0;}
@@ -423,7 +424,7 @@ nav.bottombar button.active .indicator{
           <p class="row-sub" style="margin:0;font-size:11px;">Порядок дій для подання на нагороду</p>
         </div>
         <div class="tile" onclick="navigate('reference')">
-          <svg viewBox="539 1 524 921" fill="currentColor" stroke="none"><g transform="translate(0,978) scale(0.1,-0.1)"><path d="M6831 9324 l-21 -27 0 -1477 0 -1478 -65 -4 c-69 -4 -101 -21 -139 -72 -19 -25 -21 -44 -24 -204 -3 -196 3 -224 61 -266 28 -20 42 -21 574 -26 l545 -5 5 -50 c2 -32 14 -67 33 -98 l29 -47 -39 -52 c-39 -51 -60 -111 -60 -167 l0 -31 -363 0 c-205 0 -377 -4 -396 -10 -19 -5 -45 -19 -57 -31 -52 -48 -52 -46 176 -619 l212 -533 -33 -25 c-55 -42 -151 -138 -189 -187 -29 -38 -39 -45 -62 -41 -23 5 -343 137 -925 382 -83 35 -159 64 -168 64 -32 0 -86 -33 -100 -61 -13 -24 -15 -180 -15 -1089 0 -1176 -4 -1107 65 -1136 19 -8 42 -14 51 -14 9 0 140 52 293 116 431 181 567 238 697 292 l121 50 72 -79 c39 -43 98 -99 131 -125 33 -26 60 -53 60 -61 0 -8 -92 -244 -204 -526 -254 -639 -233 -577 -215 -623 8 -20 27 -46 42 -58 l28 -21 1045 -3 c1180 -3 1097 -8 1137 74 l20 43 -208 523 c-249 625 -238 598 -234 601 70 46 213 180 251 236 l17 24 423 -178 c724 -304 686 -290 732 -274 21 8 47 25 58 39 17 24 18 73 19 1097 2 1188 6 1103 -62 1139 -51 26 -14 39 -792 -290 -202 -86 -369 -156 -371 -156 -2 0 -29 31 -60 69 -31 37 -90 96 -131 131 -41 35 -75 67 -75 71 0 5 95 246 211 536 225 565 225 565 176 611 -44 41 -67 43 -427 42 -190 -1 -354 -1 -366 -1 -18 1 -22 9 -27 56 -6 61 -49 149 -84 172 l-22 14 31 44 c22 31 32 59 37 101 l6 59 557 5 556 5 27 25 c48 44 55 75 55 253 0 149 -2 166 -22 207 -29 56 -74 80 -150 80 l-58 0 0 1479 0 1478 -21 27 -20 26 -1164 0 -1164 0 -20 -26z m1109 -1624 l0 -1510 -495 0 -495 0 0 1510 0 1510 495 0 495 0 0 -1510z m1140 0 l0 -1510 -500 0 -500 0 0 1510 0 1510 500 0 500 0 0 -1510z m-2270 -1549 c0 -52 3 -62 26 -80 27 -21 28 -21 1181 -21 l1154 0 24 25 c21 20 25 34 25 80 l0 55 45 0 45 0 0 -155 0 -155 -564 0 c-401 0 -567 3 -572 11 -15 25 -110 59 -164 59 -55 0 -127 -25 -161 -56 -13 -12 -97 -14 -570 -12 l-554 3 -3 140 c-1 76 0 145 2 152 3 8 22 13 46 13 l40 0 0 -59z m1250 -326 c58 -30 75 -86 45 -145 -18 -36 -32 -38 -37 -8 -8 57 -99 62 -122 6 l-13 -30 -17 23 c-26 38 -21 101 12 131 44 41 83 48 132 23z m53 -373 c26 -27 47 -78 47 -114 0 -16 -14 -18 -151 -18 l-152 0 6 46 c3 32 13 54 33 75 30 32 44 36 44 15 0 -24 41 -66 64 -66 36 0 66 28 66 61 0 36 9 37 43 1z m880 -270 c2 -4 -28 -86 -68 -182 -99 -242 -198 -489 -262 -655 -30 -77 -56 -141 -58 -143 -6 -6 -85 38 -85 48 0 5 68 178 150 385 83 206 150 384 150 395 0 11 -9 29 -20 40 -20 20 -33 20 -788 20 -843 0 -812 2 -812 -59 0 -27 67 -204 219 -575 44 -110 81 -203 81 -207 0 -13 -84 -53 -88 -43 -2 5 -90 225 -196 489 l-193 480 31 5 c48 8 1935 10 1939 2z m-333 -232 c0 -6 -11 -36 -24 -68 -13 -31 -68 -165 -121 -296 -123 -307 -119 -298 -150 -286 -13 5 -75 19 -137 31 -179 34 -451 18 -589 -36 -13 -5 -22 9 -43 62 -15 37 -74 183 -132 325 -57 141 -104 261 -104 267 0 8 187 11 650 11 439 0 650 -3 650 -10z m-377 -764 c346 -93 619 -347 731 -681 56 -166 72 -369 40 -522 -44 -216 -130 -378 -279 -529 -200 -202 -428 -300 -720 -311 -455 -17 -830 205 -1016 601 -49 106 -76 206 -91 339 -10 93 -10 125 4 222 65 445 395 798 838 896 128 28 359 21 493 -15z m-1968 -166 c187 -78 372 -155 410 -172 39 -16 109 -45 157 -64 l87 -36 -22 -44 c-17 -36 -25 -43 -42 -38 -11 4 -126 50 -255 104 -557 231 -550 229 -584 191 -17 -18 -18 -71 -19 -792 l0 -772 22 -19 c13 -10 34 -18 47 -18 19 0 237 87 723 289 41 17 77 31 81 31 3 0 15 -17 25 -37 11 -21 21 -41 22 -44 2 -3 -52 -29 -119 -57 -117 -48 -401 -167 -736 -308 -84 -35 -157 -64 -162 -64 -6 0 -10 365 -10 1001 0 949 1 1001 18 996 9 -2 170 -69 357 -147z m3765 -850 c0 -550 -2 -1000 -5 -1000 -3 0 -130 52 -283 116 -152 64 -373 156 -491 205 -280 117 -254 100 -228 149 12 22 25 40 29 40 4 0 116 -45 250 -101 433 -179 536 -219 561 -219 16 0 34 10 46 26 21 26 21 33 21 791 l0 764 -25 24 c-13 14 -29 25 -35 25 -10 0 -108 -40 -603 -244 -115 -47 -212 -86 -216 -86 -14 0 -45 80 -35 89 5 4 135 60 289 124 154 64 377 157 495 206 118 50 218 91 223 91 4 0 7 -450 7 -1000z m-3675 564 c440 -181 460 -190 459 -210 -1 -11 -11 -55 -23 -99 -43 -157 -39 -366 10 -544 12 -40 17 -77 12 -81 -11 -11 -668 -280 -682 -280 -8 0 -11 177 -11 650 0 511 3 650 12 650 7 0 107 -39 223 -86z m3445 -564 c0 -430 -3 -650 -10 -650 -12 0 -679 275 -687 283 -3 3 5 48 17 99 35 143 39 350 9 488 -12 58 -22 115 -23 128 -1 21 28 35 334 162 184 76 341 139 348 139 9 1 12 -135 12 -649z m-2380 -1040 l40 -20 -25 -65 c-14 -36 -36 -93 -49 -127 -13 -35 -71 -183 -130 -330 -58 -146 -108 -277 -111 -290 -4 -16 1 -33 15 -51 l21 -27 773 0 c851 0 816 -3 816 61 0 21 -214 582 -300 787 -6 13 -10 27 -10 32 0 9 80 55 84 48 10 -13 406 -1021 403 -1024 -2 -2 -450 -3 -995 -2 l-991 3 107 270 c60 149 150 376 201 505 52 129 96 238 98 243 6 10 9 9 53 -13z m257 -92 c78 -20 112 -23 293 -22 178 1 216 4 284 22 44 12 80 21 82 20 1 -2 65 -160 142 -353 134 -335 139 -350 118 -357 -34 -10 -1284 -9 -1290 1 -4 5 55 162 129 349 74 188 135 345 135 351 0 15 6 14 107 -11z"/><path d="M7889 4110 c-216 -26 -437 -135 -581 -289 -80 -84 -132 -162 -180 -271 -110 -251 -113 -500 -7 -744 115 -265 343 -455 639 -534 82 -21 116 -25 245 -25 129 1 164 4 250 27 226 59 430 195 547 364 45 65 103 187 134 282 26 79 28 96 28 250 0 151 -2 172 -28 254 -116 381 -428 642 -818 685 -107 12 -131 12 -229 1z m326 -151 c44 -10 126 -42 183 -69 189 -94 332 -264 404 -480 29 -87 31 -107 32 -230 1 -113 -3 -148 -22 -214 -82 -284 -295 -490 -587 -567 -109 -29 -319 -31 -419 -5 -340 90 -564 327 -622 657 -14 80 -14 109 -4 192 24 207 96 358 237 500 134 135 309 217 513 241 62 7 203 -5 285 -25z"/></g></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="15" r="5"/><path d="M8.5 10L7 3h10l-1.5 7"/></svg>
           <p class="tile-title">Довідник нагород</p>
           <p class="row-sub" style="margin:0;font-size:11px;">Опис та порядок нагород</p>
         </div>
@@ -1036,13 +1037,21 @@ function clearRefBody(){
   return body;
 }
 
-function makeRefRow(title, subtitle, onClick, iconSvgHtml){
+function makeRefRow(title, subtitle, onClick, iconSvgHtml, imageUrl){
   var row = document.createElement('div');
   row.className = 'row-card';
   row.innerHTML =
-    '<div class="icon-wrap">' + iconSvgHtml + '</div>' +
+    '<div class="icon-wrap">' + (imageUrl ? '' : iconSvgHtml) + '</div>' +
     '<div class="row-text"><p class="row-title"></p>' + (subtitle ? '<p class="row-sub"></p>' : '') + '</div>' +
     '<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>';
+  if (imageUrl) {
+    var img = document.createElement('img');
+    img.src = imageUrl;
+    img.alt = '';
+    img.loading = 'lazy';
+    img.onerror = function(){ row.querySelector('.icon-wrap').innerHTML = iconSvgHtml; };
+    row.querySelector('.icon-wrap').appendChild(img);
+  }
   row.querySelector('.row-title').textContent = title;
   if (subtitle) row.querySelector('.row-sub').textContent = subtitle;
   row.addEventListener('click', onClick);
@@ -1112,7 +1121,7 @@ function renderRefRootList(query){
   }
 
   matches.forEach(function(a){
-    listDiv.appendChild(makeRefRow(a.name, a.categoryLabel, function(){ refPush({ step: 'detail', awardName: a.name }); }, ICON_AWARD_SMALL));
+    listDiv.appendChild(makeRefRow(a.name, a.categoryLabel, function(){ refPush({ step: 'detail', awardName: a.name }); }, ICON_AWARD_SMALL, a.imageUrl));
   });
 }
 
@@ -1149,8 +1158,46 @@ function renderRefAwards(category){
   }
 
   awards.forEach(function(a){
-    body.appendChild(makeRefRow(a.name, null, function(){ refPush({ step: 'detail', awardName: a.name }); }, ICON_AWARD_SMALL));
+    body.appendChild(makeRefRow(a.name, null, function(){ refPush({ step: 'detail', awardName: a.name }); }, ICON_AWARD_SMALL, a.imageUrl));
   });
+}
+
+function getDegreeRank(name){
+  var n = (name || '').toString();
+  if (n.indexOf('ІІІ') !== -1) return 3;
+  if (n.indexOf('ІІ') !== -1) return 2;
+  if (n.indexOf('І') !== -1) return 1;
+  return 0;
+}
+
+function formatTextBlock(text){
+  var wrap = document.createElement('div');
+  var paragraphs = text.split(/\n\s*\n/);
+  paragraphs.forEach(function(para){
+    var lines = para.split('\n').map(function(l){ return l.trim(); }).filter(Boolean);
+    if (lines.length === 0) return;
+    var isList = lines.every(function(l){ return l.charAt(0) === '-' || l.charAt(0) === '•'; });
+    if (isList) {
+      var ul = document.createElement('ul');
+      ul.style.margin = '4px 0';
+      ul.style.paddingLeft = '18px';
+      lines.forEach(function(l){
+        var li = document.createElement('li');
+        li.className = 'body-note';
+        li.style.marginBottom = '2px';
+        li.textContent = l.replace(/^[-•]\s*/, '');
+        ul.appendChild(li);
+      });
+      wrap.appendChild(ul);
+    } else {
+      var p = document.createElement('p');
+      p.className = 'body-note';
+      p.style.marginTop = '4px';
+      p.textContent = lines.join(' ');
+      wrap.appendChild(p);
+    }
+  });
+  return wrap;
 }
 
 function renderRefDetail(awardName){
@@ -1162,36 +1209,71 @@ function renderRefDetail(awardName){
     return;
   }
 
-  var card = document.createElement('div');
-  card.className = 'card';
+  // Ордени з кількома ступенями (Богдана Хмельницького, За мужність тощо):
+  // об'єднуємо базовий запис і всі варіанти ступенів в один блок замість
+  // окремої навігації по кожному ступеню.
+  var siblings = referenceItems.filter(function(i){
+    return i.name !== item.name && i.name.indexOf(item.name) === 0 && i.name.indexOf('ступеня') !== -1;
+  }).sort(function(a, b){ return getDegreeRank(a.name) - getDegreeRank(b.name); });
 
-  var title = document.createElement('p');
-  title.className = 'card-title';
-  title.style.textTransform = 'none';
-  title.style.fontSize = '16px';
-  title.textContent = item.name;
-  card.appendChild(title);
+  function buildAwardCard(data, isDegree){
+    var card = document.createElement('div');
+    card.className = 'card';
+    if (isDegree) card.style.marginTop = '10px';
 
-  function addSection(label, text){
-    if (!text) return;
-    var l = document.createElement('p');
-    l.className = 'card-title';
-    l.style.marginTop = '14px';
-    l.style.marginBottom = '4px';
-    l.textContent = label;
-    var v = document.createElement('p');
-    v.className = 'body-note';
-    v.textContent = text;
-    card.appendChild(l);
-    card.appendChild(v);
+    if (data.imageUrl) {
+      var imgWrap = document.createElement('div');
+      imgWrap.style.textAlign = 'center';
+      imgWrap.style.marginBottom = '10px';
+      var img = document.createElement('img');
+      img.src = data.imageUrl;
+      img.alt = '';
+      img.style.maxHeight = '110px';
+      img.style.maxWidth = '110px';
+      img.style.objectFit = 'contain';
+      imgWrap.appendChild(img);
+      card.appendChild(imgWrap);
+    }
+
+    var title = document.createElement('p');
+    title.className = 'card-title';
+    title.style.textTransform = 'none';
+    title.style.fontSize = isDegree ? '14px' : '16px';
+    title.style.textAlign = 'center';
+    title.textContent = data.name;
+    card.appendChild(title);
+
+    function addSection(label, text){
+      if (!text) return;
+      var l = document.createElement('p');
+      l.className = 'card-title';
+      l.style.marginTop = '14px';
+      l.style.marginBottom = '2px';
+      l.textContent = label;
+      card.appendChild(l);
+      card.appendChild(formatTextBlock(text));
+    }
+
+    addSection('Опис', data.desc);
+    addSection('Кому', data.whom);
+    if (data.money) addSection('Грошова виплата', data.money);
+    addSection('Пільги', data.perks || 'немає');
+
+    return card;
   }
 
-  addSection('Опис', item.desc);
-  addSection('Кому', item.whom);
-  if (item.money) addSection('Грошова виплата', item.money);
-  addSection('Пільги', item.perks || 'немає');
+  body.appendChild(buildAwardCard(item, false));
 
-  body.appendChild(card);
+  siblings.forEach(function(s){
+    var heading = document.createElement('p');
+    heading.className = 'card-title';
+    heading.style.marginTop = '16px';
+    heading.style.color = 'var(--zoloto)';
+    var rank = getDegreeRank(s.name);
+    heading.textContent = (rank === 3 ? 'ІІІ' : rank === 2 ? 'ІІ' : 'І') + ' ступінь';
+    body.appendChild(heading);
+    body.appendChild(buildAwardCard(s, true));
+  });
 }
 
 // ---------- Реєстрація Service Worker ----------
