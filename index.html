@@ -483,12 +483,12 @@ nav.bottombar button.active .indicator{
     <!-- REFERENCE -->
     <section class="screen" id="screen-reference">
       <div class="screen-header">
-        <button class="back-btn" onclick="navigate('home')">
+        <button class="back-btn" onclick="refBack()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
         </button>
         <h2>Довідник нагород</h2>
       </div>
-      <p class="placeholder-note">Список нагород з описом з'явиться тут після підключення бекенду.</p>
+      <div id="reference-body"></div>
     </section>
 
     <!-- DOCUMENTS -->
@@ -797,6 +797,7 @@ function navigate(screen){
   SCREENS.forEach(s => {
     document.getElementById('screen-' + s).classList.toggle('active', s === screen);
   });
+  if (screen === 'reference') openReference();
   document.querySelectorAll('nav.bottombar button').forEach(btn => {
     var target = btn.getAttribute('data-screen');
     var isActive = (target === screen) ||
@@ -972,6 +973,225 @@ function downloadAwardCard(idx){
       btn.disabled = false;
       alert('Немає з\'єднання з сервером. Перевірте інтернет і спробуйте ще раз.');
     });
+}
+
+// ---------- Довідник нагород ----------
+var referenceItems = null;
+var refStack = [{ step: 'root' }];
+
+var ICON_RANK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+var ICON_FOLDER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>';
+var ICON_AWARD_SMALL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="15" r="5"/><path d="M8.5 10L7 3h10l-1.5 7"/></svg>';
+
+function openReference(){
+  refStack = [{ step: 'root' }];
+  renderReference();
+}
+
+function refPush(state){
+  refStack.push(state);
+  renderReference();
+}
+
+function refBack(){
+  if (refStack.length <= 1) { navigate('home'); return; }
+  refStack.pop();
+  renderReference();
+}
+
+function ensureReferenceLoaded(cb){
+  if (referenceItems) { cb(); return; }
+  var body = document.getElementById('reference-body');
+  body.innerHTML = '<div class="search-loading">Завантажую довідник...</div>';
+
+  var url = API_BASE_URL + '?action=reference&code=' + encodeURIComponent(getAuthCode());
+  fetch(url)
+    .then(function(res){ return res.json(); })
+    .then(function(data){
+      if (!data || !data.ok) {
+        body.innerHTML = '<p class="placeholder-note">Не вдалося завантажити довідник. Спробуйте ще раз.</p>';
+        return;
+      }
+      referenceItems = data.items;
+      cb();
+    })
+    .catch(function(){
+      body.innerHTML = '<p class="placeholder-note">Немає з\'єднання з сервером. Перевірте інтернет і спробуйте ще раз.</p>';
+    });
+}
+
+function renderReference(){
+  var state = refStack[refStack.length - 1];
+  ensureReferenceLoaded(function(){
+    if (state.step === 'root') renderRefRoot();
+    else if (state.step === 'categories') renderRefCategories(state.rank);
+    else if (state.step === 'awards') renderRefAwards(state.category);
+    else if (state.step === 'detail') renderRefDetail(state.awardName);
+  });
+}
+
+function clearRefBody(){
+  var body = document.getElementById('reference-body');
+  body.innerHTML = '';
+  return body;
+}
+
+function makeRefRow(title, subtitle, onClick, iconSvgHtml){
+  var row = document.createElement('div');
+  row.className = 'row-card';
+  row.innerHTML =
+    '<div class="icon-wrap">' + iconSvgHtml + '</div>' +
+    '<div class="row-text"><p class="row-title"></p>' + (subtitle ? '<p class="row-sub"></p>' : '') + '</div>' +
+    '<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>';
+  row.querySelector('.row-title').textContent = title;
+  if (subtitle) row.querySelector('.row-sub').textContent = subtitle;
+  row.addEventListener('click', onClick);
+  return row;
+}
+
+var REFERENCE_RANKS = ['Рядовий та сержантський склад', 'Офіцерський склад', 'Для всіх військовослужбовців'];
+
+function referenceMatchesRank(whom, rank){
+  var w = (whom || '').toString();
+  if (rank === 'Рядовий та сержантський склад') {
+    return w.indexOf('Рядовий та сержантський склад') !== -1 || w.indexOf('Сержантський склад') !== -1 || w.indexOf('Сержантський та офіцерський склад') !== -1;
+  }
+  if (rank === 'Офіцерський склад') {
+    return w.indexOf('Офіцерський склад') !== -1 || w.indexOf('Старший та вищій офіцерський склад') !== -1 || w.indexOf('Сержантський та офіцерський склад') !== -1;
+  }
+  if (rank === 'Для всіх військовослужбовців') {
+    return w.indexOf('Рядовий, сержантський та офіцерський склад') !== -1;
+  }
+  return false;
+}
+
+function renderRefRoot(){
+  var body = clearRefBody();
+
+  var searchCard = document.createElement('div');
+  searchCard.className = 'card';
+  var row = document.createElement('div');
+  row.className = 'search-input-row';
+  row.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>';
+  var input = document.createElement('input');
+  input.type = 'text';
+  input.id = 'reference-search-input';
+  input.placeholder = "Пошук за назвою нагороди...";
+  input.addEventListener('input', function(){ renderRefRootList(input.value.trim()); });
+  row.appendChild(input);
+  searchCard.appendChild(row);
+  body.appendChild(searchCard);
+
+  var listDiv = document.createElement('div');
+  listDiv.id = 'reference-root-list';
+  body.appendChild(listDiv);
+
+  renderRefRootList('');
+}
+
+function renderRefRootList(query){
+  var listDiv = document.getElementById('reference-root-list');
+  if (!listDiv) return;
+  listDiv.innerHTML = '';
+
+  if (!query) {
+    REFERENCE_RANKS.forEach(function(r){
+      listDiv.appendChild(makeRefRow(r, null, function(){ refPush({ step: 'categories', rank: r }); }, ICON_RANK));
+    });
+    return;
+  }
+
+  var q = query.toLowerCase();
+  var matches = referenceItems.filter(function(item){
+    return item.name.toLowerCase().indexOf(q) !== -1;
+  });
+
+  if (matches.length === 0) {
+    listDiv.innerHTML = '<p class="placeholder-note">Нічого не знайдено.</p>';
+    return;
+  }
+
+  matches.forEach(function(a){
+    listDiv.appendChild(makeRefRow(a.name, a.categoryLabel, function(){ refPush({ step: 'detail', awardName: a.name }); }, ICON_AWARD_SMALL));
+  });
+}
+
+function renderRefCategories(rank){
+  var body = clearRefBody();
+
+  var cats = [];
+  referenceItems.forEach(function(item){
+    if (referenceMatchesRank(item.whom, rank) && cats.indexOf(item.categoryLabel) === -1) {
+      cats.push(item.categoryLabel);
+    }
+  });
+
+  if (cats.length === 0) {
+    body.innerHTML = '<p class="placeholder-note">Нагород для цього складу поки немає.</p>';
+    return;
+  }
+
+  cats.forEach(function(c){
+    body.appendChild(makeRefRow(c, null, function(){ refPush({ step: 'awards', rank: rank, category: c }); }, ICON_FOLDER));
+  });
+}
+
+function renderRefAwards(category){
+  var body = clearRefBody();
+
+  var awards = referenceItems.filter(function(item){
+    return item.categoryLabel === category && item.name.indexOf('ступеня') === -1;
+  });
+
+  if (awards.length === 0) {
+    body.innerHTML = '<p class="placeholder-note">Нагород у цій категорії не знайдено.</p>';
+    return;
+  }
+
+  awards.forEach(function(a){
+    body.appendChild(makeRefRow(a.name, null, function(){ refPush({ step: 'detail', awardName: a.name }); }, ICON_AWARD_SMALL));
+  });
+}
+
+function renderRefDetail(awardName){
+  var body = clearRefBody();
+
+  var item = referenceItems.find(function(i){ return i.name === awardName; });
+  if (!item) {
+    body.innerHTML = '<p class="placeholder-note">Нагороду не знайдено.</p>';
+    return;
+  }
+
+  var card = document.createElement('div');
+  card.className = 'card';
+
+  var title = document.createElement('p');
+  title.className = 'card-title';
+  title.style.textTransform = 'none';
+  title.style.fontSize = '16px';
+  title.textContent = item.name;
+  card.appendChild(title);
+
+  function addSection(label, text){
+    if (!text) return;
+    var l = document.createElement('p');
+    l.className = 'card-title';
+    l.style.marginTop = '14px';
+    l.style.marginBottom = '4px';
+    l.textContent = label;
+    var v = document.createElement('p');
+    v.className = 'body-note';
+    v.textContent = text;
+    card.appendChild(l);
+    card.appendChild(v);
+  }
+
+  addSection('Опис', item.desc);
+  addSection('Кому', item.whom);
+  if (item.money) addSection('Грошова виплата', item.money);
+  addSection('Пільги', item.perks || 'немає');
+
+  body.appendChild(card);
 }
 
 // ---------- Реєстрація Service Worker ----------
