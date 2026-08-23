@@ -1010,14 +1010,15 @@ function ensureReferenceLoaded(cb){
     .then(function(res){ return res.json(); })
     .then(function(data){
       if (!data || !data.ok) {
-        body.innerHTML = '<p class="placeholder-note">Не вдалося завантажити довідник. Спробуйте ще раз.</p>';
+        var errText = (data && data.error) ? String(data.error) : 'невідома помилка';
+        body.innerHTML = '<p class="placeholder-note">Не вдалося завантажити довідник.<br><span style="font-size:11px;opacity:.7;word-break:break-word;">' + errText.replace(/</g,'&lt;') + '</span></p>';
         return;
       }
       referenceItems = data.items;
       cb();
     })
-    .catch(function(){
-      body.innerHTML = '<p class="placeholder-note">Немає з\'єднання з сервером. Перевірте інтернет і спробуйте ще раз.</p>';
+    .catch(function(err){
+      body.innerHTML = '<p class="placeholder-note">Немає з\'єднання з сервером.<br><span style="font-size:11px;opacity:.7;word-break:break-word;">' + String(err).replace(/</g,'&lt;') + '</span></p>';
     });
 }
 
