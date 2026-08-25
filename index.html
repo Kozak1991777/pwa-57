@@ -294,6 +294,43 @@ main{flex:1;overflow-y:auto;padding:16px 16px calc(90px + var(--safe-bottom));}
 }
 .theme-btn.active{background:var(--zoloto);color:var(--zoloto-on);border-color:var(--zoloto);}
 
+/* Statistics */
+.stats-year-row{
+  display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;margin-bottom:14px;
+  -ms-overflow-style:none;scrollbar-width:none;
+}
+.stats-year-row::-webkit-scrollbar{display:none;}
+.stats-chip{
+  flex-shrink:0;height:34px;padding:0 14px;border-radius:17px;border:1px solid var(--border);
+  background:var(--surface-1);color:var(--text-secondary);font-family:inherit;font-size:13px;font-weight:600;
+  cursor:pointer;white-space:nowrap;
+}
+.stats-chip.active{background:var(--zoloto);color:var(--zoloto-on);border-color:var(--zoloto);}
+.stats-tabs{display:flex;gap:6px;margin-bottom:14px;}
+.stats-tab{
+  flex:1;height:38px;border-radius:7px;border:1px solid var(--border-soft);background:var(--surface-1);
+  color:var(--text-secondary);font-family:inherit;font-size:13px;font-weight:600;text-transform:uppercase;
+  letter-spacing:0.01em;cursor:pointer;
+}
+.stats-tab.active{background:var(--zoloto);color:var(--zoloto-on);border-color:var(--zoloto);}
+.stats-metric-card{margin-bottom:14px;}
+.stats-metric-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.03em;margin:0 0 4px;}
+.stats-metric-value{font-size:30px;font-weight:800;color:var(--text-primary);margin:0;}
+.chart-card{margin-bottom:14px;}
+.chart-wrap{position:relative;height:220px;}
+.chart-wrap.chart-wrap-trend{height:180px;}
+.stats-rank-row{
+  display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--surface-2);cursor:pointer;
+}
+.stats-rank-row:last-child{border-bottom:none;}
+.stats-rank-num{width:22px;flex-shrink:0;font-size:13px;font-weight:700;color:var(--text-muted);text-align:center;}
+.stats-rank-name{margin:0;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.stats-rank-sub{font-size:11px;color:var(--text-secondary);margin:1px 0 0;}
+.stats-rank-count{flex-shrink:0;font-size:14px;font-weight:700;color:var(--zoloto);}
+.stats-download-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.stats-detail-header{margin:0 0 14px;}
+.stats-detail-header h2{margin:0;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:0.01em;}
+
 /* Bottom nav */
 nav.bottombar{
   position:fixed;left:0;right:0;bottom:0;
@@ -478,7 +515,16 @@ nav.bottombar button.active .indicator{
         </button>
         <h2>Статистика</h2>
       </div>
-      <p class="placeholder-note">Загальна статистика, топ-5 підрозділів і топ-5 військовослужбовців з'являться тут після підключення бекенду.</p>
+
+      <div class="stats-year-row" id="stats-year-row"></div>
+
+      <div class="stats-tabs" id="stats-tabs">
+        <button class="stats-tab active" data-tab="gen" onclick="setStatsTab('gen')">Загальна</button>
+        <button class="stats-tab" data-tab="unit" onclick="setStatsTab('unit')">Підрозділи</button>
+        <button class="stats-tab" data-tab="ppl" onclick="setStatsTab('ppl')">Люди</button>
+      </div>
+
+      <div id="stats-body"><div class="search-loading">Завантажую статистику...</div></div>
     </section>
 
     <!-- REFERENCE -->
@@ -648,11 +694,15 @@ nav.bottombar button.active .indicator{
 
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
 <script>
 // ---------- Налаштування API ----------
 const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbwJktVQ9C6kpWi8oVb3lSk8CGDxqwkh35x6JwnQgEemlP0ky8qtgK30ZzDseDY9LSXK/exec';
 const AUTH_STORAGE_KEY = 'nagorody_auth';
 const THEME_STORAGE_KEY = 'nagorody_theme';
+
+var currentScreen = 'home';
 
 // ---------- Тема застосунку ----------
 function setTheme(theme){
@@ -665,6 +715,9 @@ function setTheme(theme){
   if (darkBtn && lightBtn) {
     darkBtn.classList.toggle('active', theme !== 'light');
     lightBtn.classList.toggle('active', theme === 'light');
+  }
+  if (currentScreen === 'stats' && typeof renderStatsBody === 'function') {
+    renderStatsBody();
   }
 }
 
@@ -795,10 +848,12 @@ function goToSearchFromHome(prefill){
 
 function navigate(screen){
   if (SCREENS.indexOf(screen) === -1) screen = 'home';
+  currentScreen = screen;
   SCREENS.forEach(s => {
     document.getElementById('screen-' + s).classList.toggle('active', s === screen);
   });
   if (screen === 'reference') openReference();
+  if (screen === 'stats') openStats();
   document.querySelectorAll('nav.bottombar button').forEach(btn => {
     var target = btn.getAttribute('data-screen');
     var isActive = (target === screen) ||
@@ -1275,6 +1330,378 @@ function renderRefDetail(awardName){
     body.appendChild(heading);
     body.appendChild(buildAwardCard(s, true));
   });
+}
+
+// ---------- Статистика ----------
+var statsCache = {};            // year ("all" | "2025" тощо) -> дані з action=stats
+var statsCurrentYear = 'all';
+var statsCurrentTab = 'gen';    // 'gen' | 'unit' | 'ppl'
+var statsUnitDetailName = null; // якщо задано — показуємо деталі підрозділу замість списку
+var statsChartCat = null;
+var statsChartTrend = null;
+
+function openStats(){
+  statsCurrentTab = 'gen';
+  statsUnitDetailName = null;
+  document.querySelectorAll('.stats-tab').forEach(function(btn){
+    btn.classList.toggle('active', btn.getAttribute('data-tab') === 'gen');
+  });
+
+  if (statsCache['all']) {
+    renderStatsYearChips();
+    renderStatsBody();
+    return;
+  }
+  loadStats('all', function(){
+    renderStatsYearChips();
+    renderStatsBody();
+  });
+}
+
+function loadStats(year, cb){
+  var body = document.getElementById('stats-body');
+  if (body) body.innerHTML = '<div class="search-loading">Завантажую статистику...</div>';
+
+  var url = API_BASE_URL + '?action=stats&code=' + encodeURIComponent(getAuthCode()) + '&year=' + encodeURIComponent(year);
+
+  fetch(url)
+    .then(function(res){ return res.json(); })
+    .then(function(data){
+      if (!data || !data.ok) {
+        if (body) body.innerHTML = '<p class="placeholder-note">Не вдалося завантажити статистику.<br><span style="font-size:11px;opacity:.7;">' + escapeHtml((data && data.error) || 'помилка') + '</span></p>';
+        return;
+      }
+      statsCache[year] = data;
+      if (cb) cb();
+    })
+    .catch(function(){
+      if (body) body.innerHTML = '<p class="placeholder-note">Немає з\'єднання з сервером.</p>';
+    });
+}
+
+function renderStatsYearChips(){
+  var row = document.getElementById('stats-year-row');
+  if (!row || !statsCache['all']) return;
+  row.innerHTML = '';
+
+  var allBtn = document.createElement('button');
+  allBtn.className = 'stats-chip' + (statsCurrentYear === 'all' ? ' active' : '');
+  allBtn.textContent = 'Весь час';
+  allBtn.onclick = function(){ setStatsYear('all'); };
+  row.appendChild(allBtn);
+
+  var years = (statsCache['all'].trend || []).map(function(t){ return t.year; }).sort(function(a, b){ return b.localeCompare(a); });
+  years.forEach(function(y){
+    var btn = document.createElement('button');
+    btn.className = 'stats-chip' + (statsCurrentYear === y ? ' active' : '');
+    btn.textContent = y;
+    btn.onclick = function(){ setStatsYear(y); };
+    row.appendChild(btn);
+  });
+}
+
+function setStatsYear(year){
+  statsCurrentYear = year;
+  statsUnitDetailName = null;
+  renderStatsYearChips();
+  if (statsCache[year]) {
+    renderStatsBody();
+  } else {
+    loadStats(year, renderStatsBody);
+  }
+}
+
+function setStatsTab(tab){
+  statsCurrentTab = tab;
+  statsUnitDetailName = null;
+  document.querySelectorAll('.stats-tab').forEach(function(btn){
+    btn.classList.toggle('active', btn.getAttribute('data-tab') === tab);
+  });
+  renderStatsBody();
+}
+
+function destroyStatsCharts(){
+  if (statsChartCat) { statsChartCat.destroy(); statsChartCat = null; }
+  if (statsChartTrend) { statsChartTrend.destroy(); statsChartTrend = null; }
+}
+
+function statsChartColors(){
+  var isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+  return {
+    text: isDark ? '#F1F0EC' : '#1F1F1F',
+    accent: isDark ? '#F29A00' : '#F39200',
+    grid: isDark ? 'rgba(240,238,230,0.08)' : 'rgba(31,31,31,0.08)'
+  };
+}
+
+function renderStatsBody(){
+  var data = statsCache[statsCurrentYear];
+  var body = document.getElementById('stats-body');
+  if (!body) return;
+  if (!data) { body.innerHTML = '<div class="search-loading">Завантажую статистику...</div>'; return; }
+
+  if (statsCurrentTab === 'gen') {
+    renderStatsGeneral(data);
+  } else if (statsCurrentTab === 'unit') {
+    if (statsUnitDetailName) loadStatsUnitDetail(statsUnitDetailName);
+    else renderStatsRankList(data.unitsTop10, 'unit');
+  } else if (statsCurrentTab === 'ppl') {
+    renderStatsRankList(data.peopleTop10, 'ppl');
+  }
+}
+
+function renderStatsGeneral(data){
+  destroyStatsCharts();
+  var body = document.getElementById('stats-body');
+  body.innerHTML = '';
+
+  var metric = document.createElement('div');
+  metric.className = 'card stats-metric-card';
+  metric.innerHTML = '<p class="stats-metric-label">Всього нагороджено' + (statsCurrentYear === 'all' ? ' (за весь час)' : ' (' + statsCurrentYear + ' рік)') + '</p><p class="stats-metric-value">' + data.total + '</p>';
+  body.appendChild(metric);
+
+  if (!data.categories || data.categories.length === 0) {
+    var empty = document.createElement('p');
+    empty.className = 'placeholder-note';
+    empty.textContent = 'Даних за цей період не знайдено.';
+    body.appendChild(empty);
+    return;
+  }
+
+  var chartCard = document.createElement('div');
+  chartCard.className = 'card chart-card';
+  chartCard.innerHTML = '<p class="card-title">По категоріях</p><div class="chart-wrap"><canvas id="stats-chart-cat"></canvas></div>';
+  body.appendChild(chartCard);
+
+  var hasTrend = statsCurrentYear === 'all' && data.trend && data.trend.length > 0;
+  if (hasTrend) {
+    var trendCard = document.createElement('div');
+    trendCard.className = 'card chart-card';
+    trendCard.innerHTML = '<p class="card-title">Динаміка по роках</p><div class="chart-wrap chart-wrap-trend"><canvas id="stats-chart-trend"></canvas></div>';
+    body.appendChild(trendCard);
+  }
+
+  var colors = statsChartColors();
+
+  statsChartCat = new Chart(document.getElementById('stats-chart-cat'), {
+    type: 'bar',
+    data: {
+      labels: data.categories.map(function(c){ return c.label; }),
+      datasets: [{ data: data.categories.map(function(c){ return c.count; }), backgroundColor: colors.accent, borderRadius: 4 }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        datalabels: { anchor: 'end', align: 'right', color: colors.text, font: { weight: 'bold', size: 11 } }
+      },
+      scales: {
+        x: { ticks: { color: colors.text, font: { size: 10 } }, grid: { color: colors.grid }, grace: '10%' },
+        y: { ticks: { color: colors.text, font: { size: 11 } }, grid: { display: false } }
+      }
+    },
+    plugins: [ChartDataLabels]
+  });
+
+  if (hasTrend) {
+    statsChartTrend = new Chart(document.getElementById('stats-chart-trend'), {
+      type: 'line',
+      data: {
+        labels: data.trend.map(function(t){ return t.year; }),
+        datasets: [{
+          data: data.trend.map(function(t){ return t.count; }),
+          borderColor: colors.accent, backgroundColor: colors.accent + '22',
+          fill: true, tension: 0.3, pointRadius: 4, pointBackgroundColor: colors.accent
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          datalabels: { align: 'top', color: colors.text, font: { weight: 'bold', size: 10 } }
+        },
+        scales: {
+          x: { ticks: { color: colors.text, font: { size: 10 } }, grid: { display: false } },
+          y: { ticks: { color: colors.text, font: { size: 10 } }, grid: { color: colors.grid }, grace: '20%' }
+        }
+      },
+      plugins: [ChartDataLabels]
+    });
+  }
+}
+
+function renderStatsRankList(list, kind){
+  destroyStatsCharts();
+  var body = document.getElementById('stats-body');
+  body.innerHTML = '';
+
+  if (!list || list.length === 0) {
+    body.innerHTML = '<p class="placeholder-note">Даних не знайдено' + (statsCurrentYear === 'all' ? '' : ' за ' + statsCurrentYear + ' рік') + '.</p>';
+    return;
+  }
+
+  var card = document.createElement('div');
+  card.className = 'card';
+  card.style.padding = '4px 0';
+
+  list.forEach(function(item, i){
+    var row = document.createElement('div');
+    row.className = 'stats-rank-row';
+    var sub = kind === 'ppl' ? (item.unit || 'Підрозділ не вказано') : '';
+    row.innerHTML =
+      '<span class="stats-rank-num">' + (i + 1) + '</span>' +
+      '<div style="flex:1;min-width:0;">' +
+      '<p class="stats-rank-name"></p>' +
+      (sub ? '<p class="stats-rank-sub"></p>' : '') +
+      '</div>' +
+      '<span class="stats-rank-count"></span>';
+    row.querySelector('.stats-rank-name').textContent = item.name;
+    if (sub) row.querySelector('.stats-rank-sub').textContent = sub;
+    row.querySelector('.stats-rank-count').textContent = item.count;
+    row.onclick = (kind === 'unit')
+      ? (function(unitName){ return function(){ statsUnitDetailName = unitName; loadStatsUnitDetail(unitName); }; })(item.name)
+      : (function(personName){ return function(){ goToPersonFromStats(personName); }; })(item.name);
+    card.appendChild(row);
+  });
+
+  body.appendChild(card);
+}
+
+function goToPersonFromStats(name){
+  navigate('search');
+  var input = document.getElementById('search-input');
+  if (input) input.value = name;
+  performSearch();
+}
+
+function loadStatsUnitDetail(unitName){
+  destroyStatsCharts();
+  var body = document.getElementById('stats-body');
+  body.innerHTML = '<div class="search-loading">Завантажую дані підрозділу...</div>';
+
+  var url = API_BASE_URL + '?action=statsUnitDetail'
+    + '&code=' + encodeURIComponent(getAuthCode())
+    + '&unit=' + encodeURIComponent(unitName)
+    + '&year=' + encodeURIComponent(statsCurrentYear);
+
+  fetch(url)
+    .then(function(res){ return res.json(); })
+    .then(function(data){
+      if (!data || !data.ok) {
+        body.innerHTML = '<p class="placeholder-note">Не вдалося завантажити дані підрозділу.</p>';
+        return;
+      }
+      renderStatsUnitDetail(data);
+    })
+    .catch(function(){
+      body.innerHTML = '<p class="placeholder-note">Немає з\'єднання з сервером.</p>';
+    });
+}
+
+function renderStatsUnitDetail(data){
+  destroyStatsCharts();
+  var body = document.getElementById('stats-body');
+  body.innerHTML = '';
+
+  var headerRow = document.createElement('div');
+  headerRow.className = 'screen-header stats-detail-header';
+  headerRow.innerHTML =
+    '<button class="back-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg></button>' +
+    '<h2></h2>';
+  headerRow.querySelector('.back-btn').onclick = function(){ statsUnitDetailName = null; renderStatsBody(); };
+  headerRow.querySelector('h2').textContent = data.unit;
+  body.appendChild(headerRow);
+
+  var metric = document.createElement('div');
+  metric.className = 'card stats-metric-card';
+  metric.innerHTML = '<p class="stats-metric-label">Всього нагороджено' + (data.year === 'all' ? ' (за весь час)' : ' (' + data.year + ' рік)') + '</p><p class="stats-metric-value">' + data.total + '</p>';
+  body.appendChild(metric);
+
+  var chartCard = document.createElement('div');
+  chartCard.className = 'card chart-card';
+  chartCard.innerHTML = '<p class="card-title">По категоріях</p><div class="chart-wrap"><canvas id="stats-chart-unit"></canvas></div>';
+  body.appendChild(chartCard);
+
+  var dlCard = document.createElement('div');
+  dlCard.className = 'card';
+  dlCard.innerHTML =
+    '<p class="card-title">Завантажити звіт</p>' +
+    '<div class="stats-download-row">' +
+    '<button class="btn-outline" id="stats-pdf-btn">PDF</button>' +
+    '<button class="btn-outline" id="stats-xlsx-btn">XLSX</button>' +
+    '</div>';
+  body.appendChild(dlCard);
+  dlCard.querySelector('#stats-pdf-btn').onclick = function(){
+    downloadStatsUnitFile('statsUnitPdf', data.unit, 'pdfBase64', 'application/pdf', this);
+  };
+  dlCard.querySelector('#stats-xlsx-btn').onclick = function(){
+    downloadStatsUnitFile('statsUnitXlsx', data.unit, 'xlsxBase64', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', this);
+  };
+
+  var colors = statsChartColors();
+
+  statsChartCat = new Chart(document.getElementById('stats-chart-unit'), {
+    type: 'bar',
+    data: {
+      labels: data.categories.map(function(c){ return c.label; }),
+      datasets: [{ data: data.categories.map(function(c){ return c.count; }), backgroundColor: colors.accent, borderRadius: 4 }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        datalabels: { anchor: 'end', align: 'right', color: colors.text, font: { weight: 'bold', size: 11 } }
+      },
+      scales: {
+        x: { ticks: { color: colors.text, font: { size: 10 } }, grid: { color: colors.grid }, grace: '10%' },
+        y: { ticks: { color: colors.text, font: { size: 11 } }, grid: { display: false } }
+      }
+    },
+    plugins: [ChartDataLabels]
+  });
+}
+
+function downloadStatsUnitFile(action, unitName, field, mime, btn){
+  var originalText = btn.textContent;
+  btn.textContent = 'Формую...';
+  btn.disabled = true;
+
+  var url = API_BASE_URL + '?action=' + action
+    + '&code=' + encodeURIComponent(getAuthCode())
+    + '&unit=' + encodeURIComponent(unitName)
+    + '&year=' + encodeURIComponent(statsCurrentYear);
+
+  fetch(url)
+    .then(function(res){ return res.json(); })
+    .then(function(data){
+      btn.textContent = originalText;
+      btn.disabled = false;
+      if (!data || !data.ok) {
+        alert('Не вдалося сформувати файл. Спробуйте ще раз.');
+        return;
+      }
+
+      var byteChars = atob(data[field]);
+      var byteNumbers = new Array(byteChars.length);
+      for (var i = 0; i < byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i);
+      var byteArray = new Uint8Array(byteNumbers);
+      var blob = new Blob([byteArray], { type: mime });
+
+      var link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = data.filename || 'Звіт';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(function(){ URL.revokeObjectURL(link.href); }, 5000);
+    })
+    .catch(function(){
+      btn.textContent = originalText;
+      btn.disabled = false;
+      alert('Немає з\'єднання з сервером.');
+    });
 }
 
 // ---------- Реєстрація Service Worker ----------
