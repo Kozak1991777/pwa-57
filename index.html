@@ -1481,6 +1481,22 @@ function renderStatsGeneral(data){
     body.appendChild(trendCard);
   }
 
+  var dlCard = document.createElement('div');
+  dlCard.className = 'card';
+  dlCard.innerHTML =
+    '<p class="card-title">Завантажити звіт</p>' +
+    '<div class="stats-download-row">' +
+    '<button class="btn-outline" id="stats-general-pdf-btn">PDF</button>' +
+    '<button class="btn-outline" id="stats-general-xlsx-btn">XLSX</button>' +
+    '</div>';
+  body.appendChild(dlCard);
+  dlCard.querySelector('#stats-general-pdf-btn').onclick = function(){
+    downloadStatsFile('statsGeneralPdf', null, 'pdfBase64', 'application/pdf', this);
+  };
+  dlCard.querySelector('#stats-general-xlsx-btn').onclick = function(){
+    downloadStatsFile('statsGeneralXlsx', null, 'xlsxBase64', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', this);
+  };
+
   var colors = statsChartColors();
 
   statsChartCat = new Chart(document.getElementById('stats-chart-cat'), {
@@ -1696,10 +1712,10 @@ function renderStatsUnitDetail(data){
     '</div>';
   body.appendChild(dlCard);
   dlCard.querySelector('#stats-pdf-btn').onclick = function(){
-    downloadStatsUnitFile('statsUnitPdf', data.unit, 'pdfBase64', 'application/pdf', this);
+    downloadStatsFile('statsUnitPdf', data.unit, 'pdfBase64', 'application/pdf', this);
   };
   dlCard.querySelector('#stats-xlsx-btn').onclick = function(){
-    downloadStatsUnitFile('statsUnitXlsx', data.unit, 'xlsxBase64', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', this);
+    downloadStatsFile('statsUnitXlsx', data.unit, 'xlsxBase64', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', this);
   };
 
   var colors = statsChartColors();
@@ -1726,15 +1742,15 @@ function renderStatsUnitDetail(data){
   });
 }
 
-function downloadStatsUnitFile(action, unitName, field, mime, btn){
+function downloadStatsFile(action, unitName, field, mime, btn){
   var originalText = btn.textContent;
   btn.textContent = 'Формую...';
   btn.disabled = true;
 
   var url = API_BASE_URL + '?action=' + action
     + '&code=' + encodeURIComponent(getAuthCode())
-    + '&unit=' + encodeURIComponent(unitName)
-    + '&year=' + encodeURIComponent(statsCurrentYear);
+    + '&year=' + encodeURIComponent(statsCurrentYear)
+    + (unitName ? '&unit=' + encodeURIComponent(unitName) : '');
 
   fetch(url)
     .then(function(res){ return res.json(); })
@@ -1742,7 +1758,7 @@ function downloadStatsUnitFile(action, unitName, field, mime, btn){
       btn.textContent = originalText;
       btn.disabled = false;
       if (!data || !data.ok) {
-        alert('Не вдалося сформувати файл. Спробуйте ще раз.');
+        alert('Не вдалося сформувати файл' + (data && data.error ? ': ' + data.error : '. Спробуйте ще раз.'));
         return;
       }
 
@@ -1760,10 +1776,10 @@ function downloadStatsUnitFile(action, unitName, field, mime, btn){
       document.body.removeChild(link);
       setTimeout(function(){ URL.revokeObjectURL(link.href); }, 5000);
     })
-    .catch(function(){
+    .catch(function(err){
       btn.textContent = originalText;
       btn.disabled = false;
-      alert('Немає з\'єднання з сервером.');
+      alert('Немає з\'єднання з сервером: ' + err);
     });
 }
 
