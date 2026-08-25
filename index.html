@@ -1571,6 +1571,64 @@ function renderStatsRankList(list, kind){
   });
 
   body.appendChild(card);
+
+  if (kind === 'unit') {
+    var allHeading = document.createElement('p');
+    allHeading.className = 'card-title';
+    allHeading.style.marginTop = '18px';
+    allHeading.textContent = 'Усі підрозділи';
+    body.appendChild(allHeading);
+
+    var allCard = document.createElement('div');
+    allCard.className = 'card';
+
+    var searchRow = document.createElement('div');
+    searchRow.className = 'search-input-row';
+    searchRow.style.marginBottom = '10px';
+    searchRow.innerHTML =
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>' +
+      '<input type="text" id="stats-unit-search-input" placeholder="Пошук підрозділу...">';
+    allCard.appendChild(searchRow);
+
+    var listWrap = document.createElement('div');
+    listWrap.id = 'stats-unit-all-list';
+    allCard.appendChild(listWrap);
+
+    body.appendChild(allCard);
+
+    searchRow.querySelector('#stats-unit-search-input').addEventListener('input', function(){
+      renderStatsUnitAllList(this.value.trim());
+    });
+    renderStatsUnitAllList('');
+  }
+}
+
+function renderStatsUnitAllList(query){
+  var container = document.getElementById('stats-unit-all-list');
+  if (!container) return;
+
+  var data = statsCache[statsCurrentYear];
+  var units = (data && data.units) || [];
+  var q = (query || '').toLowerCase();
+  var filtered = q ? units.filter(function(u){ return u.name.toLowerCase().indexOf(q) !== -1; }) : units;
+
+  if (filtered.length === 0) {
+    container.innerHTML = '<p class="placeholder-note" style="padding:16px 0;">Нічого не знайдено.</p>';
+    return;
+  }
+
+  container.innerHTML = '';
+  filtered.forEach(function(u){
+    var row = document.createElement('div');
+    row.className = 'stats-rank-row';
+    row.innerHTML =
+      '<div style="flex:1;min-width:0;"><p class="stats-rank-name"></p></div>' +
+      '<span class="stats-rank-count"></span>';
+    row.querySelector('.stats-rank-name').textContent = u.name;
+    row.querySelector('.stats-rank-count').textContent = u.count;
+    row.onclick = (function(name){ return function(){ statsUnitDetailName = name; loadStatsUnitDetail(name); }; })(u.name);
+    container.appendChild(row);
+  });
 }
 
 function goToPersonFromStats(name){
