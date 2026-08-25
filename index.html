@@ -1541,6 +1541,11 @@ function renderStatsRankList(list, kind){
     return;
   }
 
+  var heading = document.createElement('p');
+  heading.className = 'card-title';
+  heading.textContent = kind === 'unit' ? 'Топ-10 підрозділів' : 'Топ-10 військовослужбовців';
+  body.appendChild(heading);
+
   var card = document.createElement('div');
   card.className = 'card';
   card.style.padding = '4px 0';
