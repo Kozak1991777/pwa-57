@@ -884,6 +884,41 @@ window.addEventListener('online', updateOnlineStatus);
 window.addEventListener('offline', updateOnlineStatus);
 updateOnlineStatus();
 
+function byteArrayFromBase64(base64){
+  var byteChars = atob(base64);
+  var byteNumbers = new Array(byteChars.length);
+  for (var i = 0; i < byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i);
+  return new Uint8Array(byteNumbers);
+}
+
+function downloadBlobFallback(byteArray, filename, mime){
+  var blob = new Blob([byteArray], { type: mime });
+  var link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  setTimeout(function(){ URL.revokeObjectURL(link.href); }, 5000);
+}
+
+// На телефонах (Android/iOS) відкриває системне вікно "Поділитися" з файлом —
+// звідти можна надіслати файл собі через WhatsApp/Signal/пошту тощо. На
+// комп'ютері Web Share API з файлами не підтримується — там просто
+// завантажується файл, як і раніше.
+function shareOrDownloadBlob(byteArray, filename, mime, shareTitle){
+  try {
+    var file = new File([byteArray], filename, { type: mime });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file], title: shareTitle || filename }).catch(function(err){
+        if (!err || err.name !== 'AbortError') downloadBlobFallback(byteArray, filename, mime);
+      });
+      return;
+    }
+  } catch (e) {}
+  downloadBlobFallback(byteArray, filename, mime);
+}
+
 // ---------- Пошук військовослужбовця ----------
 function escapeHtml(str){
   return String(str == null ? '' : str)
@@ -1010,19 +1045,9 @@ function downloadAwardCard(idx){
         return;
       }
 
-      var byteChars = atob(data.pdfBase64);
-      var byteNumbers = new Array(byteChars.length);
-      for (var i = 0; i < byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i);
-      var byteArray = new Uint8Array(byteNumbers);
-      var blob = new Blob([byteArray], { type: 'application/pdf' });
-
-      var link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = data.filename || 'Нагородна_картка.pdf';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      setTimeout(function(){ URL.revokeObjectURL(link.href); }, 5000);
+      var byteArray = byteArrayFromBase64(data.pdfBase64);
+      var filename = data.filename || 'Нагородна_картка.pdf';
+      shareOrDownloadBlob(byteArray, filename, 'application/pdf', filename);
     })
     .catch(function(){
       btn.innerHTML = originalText;
