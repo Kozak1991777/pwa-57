@@ -1721,6 +1721,14 @@ function renderStatsUnitDetail(data){
   chartCard.innerHTML = '<p class="card-title">По категоріях</p><div class="chart-wrap" style="height:' + unitChartHeight + 'px;"><canvas id="stats-chart-unit"></canvas></div>';
   body.appendChild(chartCard);
 
+  var hasUnitTrend = data.year === 'all' && data.trend && data.trend.length > 0;
+  if (hasUnitTrend) {
+    var trendCard = document.createElement('div');
+    trendCard.className = 'card chart-card';
+    trendCard.innerHTML = '<p class="card-title">Динаміка по роках</p><div class="chart-wrap chart-wrap-trend"><canvas id="stats-chart-unit-trend"></canvas></div>';
+    body.appendChild(trendCard);
+  }
+
   var dlCard = document.createElement('div');
   dlCard.className = 'card';
   dlCard.innerHTML =
@@ -1759,6 +1767,32 @@ function renderStatsUnitDetail(data){
     },
     plugins: [ChartDataLabels]
   });
+
+  if (hasUnitTrend) {
+    statsChartTrend = new Chart(document.getElementById('stats-chart-unit-trend'), {
+      type: 'line',
+      data: {
+        labels: data.trend.map(function(t){ return t.year; }),
+        datasets: [{
+          data: data.trend.map(function(t){ return t.count; }),
+          borderColor: colors.accent, backgroundColor: colors.accent + '22',
+          fill: true, tension: 0.3, pointRadius: 4, pointBackgroundColor: colors.accent
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          datalabels: { align: 'top', color: colors.text, font: { weight: 'bold', size: 10 } }
+        },
+        scales: {
+          x: { ticks: { color: colors.text, font: { size: 10 } }, grid: { display: false } },
+          y: { ticks: { color: colors.text, font: { size: 10 } }, grid: { color: colors.grid }, grace: '20%' }
+        }
+      },
+      plugins: [ChartDataLabels]
+    });
+  }
 }
 
 function downloadStatsFile(action, unitName, field, mime, btn){
