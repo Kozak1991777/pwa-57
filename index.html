@@ -884,6 +884,15 @@ window.addEventListener('online', updateOnlineStatus);
 window.addEventListener('offline', updateOnlineStatus);
 updateOnlineStatus();
 
+function canShareFiles(mime){
+  try {
+    var testFile = new File([new Uint8Array([0])], "test", { type: mime || "application/pdf" });
+    return !!(navigator.canShare && navigator.canShare({ files: [testFile] }));
+  } catch (e) {
+    return false;
+  }
+}
+
 function byteArrayFromBase64(base64){
   var byteChars = atob(base64);
   var byteNumbers = new Array(byteChars.length);
@@ -1047,7 +1056,18 @@ function downloadAwardCard(idx){
 
       var byteArray = byteArrayFromBase64(data.pdfBase64);
       var filename = data.filename || 'Нагородна_картка.pdf';
-      shareOrDownloadBlob(byteArray, filename, 'application/pdf', filename);
+
+      if (canShareFiles('application/pdf')) {
+        btn.innerHTML = 'Натисніть, щоб поділитися файлом';
+        btn.disabled = false;
+        btn.onclick = function(){
+          shareOrDownloadBlob(byteArray, filename, 'application/pdf', filename);
+          btn.innerHTML = originalText;
+          btn.onclick = function(){ downloadAwardCard(idx); };
+        };
+      } else {
+        downloadBlobFallback(byteArray, filename, 'application/pdf');
+      }
     })
     .catch(function(){
       btn.innerHTML = originalText;
@@ -1499,7 +1519,7 @@ function renderStatsGeneral(data){
 
   var metric = document.createElement('div');
   metric.className = 'card stats-metric-card';
-  metric.innerHTML = '<p class="stats-metric-label">Всього нагороджено' + (statsCurrentYear === 'all' ? ' (за весь час)' : ' (' + statsCurrentYear + ' рік)') + '</p><p class="stats-metric-value">' + data.total + '</p>';
+  metric.innerHTML = '<p class="stats-metric-label">Всього нагород' + (statsCurrentYear === 'all' ? ' (за весь час)' : ' (' + statsCurrentYear + ' рік)') + '</p><p class="stats-metric-value">' + data.total + '</p>';
   body.appendChild(metric);
 
   if (!data.categories || data.categories.length === 0) {
@@ -1737,7 +1757,7 @@ function renderStatsUnitDetail(data){
 
   var metric = document.createElement('div');
   metric.className = 'card stats-metric-card';
-  metric.innerHTML = '<p class="stats-metric-label">Всього нагороджено' + (data.year === 'all' ? ' (за весь час)' : ' (' + data.year + ' рік)') + '</p><p class="stats-metric-value">' + data.total + '</p>';
+  metric.innerHTML = '<p class="stats-metric-label">Всього нагород' + (data.year === 'all' ? ' (за весь час)' : ' (' + data.year + ' рік)') + '</p><p class="stats-metric-value">' + data.total + '</p>';
   body.appendChild(metric);
 
   var chartCard = document.createElement('div');
@@ -1822,6 +1842,7 @@ function renderStatsUnitDetail(data){
 
 function downloadStatsFile(action, unitName, field, mime, btn){
   var originalText = btn.textContent;
+  var originalOnclick = btn.onclick;
   btn.textContent = 'Формую...';
   btn.disabled = true;
 
@@ -1840,19 +1861,20 @@ function downloadStatsFile(action, unitName, field, mime, btn){
         return;
       }
 
-      var byteChars = atob(data[field]);
-      var byteNumbers = new Array(byteChars.length);
-      for (var i = 0; i < byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i);
-      var byteArray = new Uint8Array(byteNumbers);
-      var blob = new Blob([byteArray], { type: mime });
+      var byteArray = byteArrayFromBase64(data[field]);
+      var filename = data.filename || 'Звіт';
 
-      var link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = data.filename || 'Звіт';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      setTimeout(function(){ URL.revokeObjectURL(link.href); }, 5000);
+      if (canShareFiles(mime)) {
+        btn.textContent = 'Поділитися';
+        btn.disabled = false;
+        btn.onclick = function(){
+          shareOrDownloadBlob(byteArray, filename, mime, filename);
+          btn.textContent = originalText;
+          btn.onclick = originalOnclick;
+        };
+      } else {
+        downloadBlobFallback(byteArray, filename, mime);
+      }
     })
     .catch(function(err){
       btn.textContent = originalText;
