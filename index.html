@@ -928,11 +928,9 @@ function shareOrDownloadBlob(byteArray, filename, mime, shareTitle){
     try {
       navigator.share({ files: [file], title: shareTitle || filename }).catch(function(err){
         if (err && err.name === 'AbortError') return; // користувач сам закрив вікно — це не помилка
-        alert('ДІАГНОСТИКА (тимчасово): navigator.share відхилив проміс — ' + (err && err.name) + ': ' + (err && err.message));
         downloadBlobFallback(byteArray, filename, mime);
       });
     } catch (e) {
-      alert('ДІАГНОСТИКА (тимчасово): navigator.share кинув виняток синхронно — ' + (e && e.name) + ': ' + (e && e.message));
       downloadBlobFallback(byteArray, filename, mime);
     }
     return;
