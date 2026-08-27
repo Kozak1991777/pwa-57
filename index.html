@@ -722,7 +722,7 @@ function setTheme(theme){
 }
 
 // ---------- Авторизація ----------
-function showApp(user){
+function showApp(user, dataUpdatedAt){
   var nameEl = document.getElementById('user-name');
   var name = user.name || '—';
   nameEl.textContent = name;
@@ -731,15 +731,13 @@ function showApp(user){
   else if (name.length > 16) nameEl.classList.add('name-md');
 
   document.getElementById('user-unit').textContent = user.unit || 'Підрозділ не визначено';
-  document.getElementById('last-updated').textContent =
-    "Дані оновлено: " + new Date().toLocaleDateString('uk-UA') + " " +
-    new Date().toLocaleTimeString('uk-UA', {hour:'2-digit', minute:'2-digit'});
+  document.getElementById('last-updated').textContent = "Дані оновлено: " + (dataUpdatedAt || 'невідомо');
   document.getElementById('auth-gate').classList.add('hidden');
   document.getElementById('app').style.display = 'flex';
 }
 
-function saveAuth(code, user){
-  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ code: code, user: user, savedAt: Date.now() }));
+function saveAuth(code, user, dataUpdatedAt){
+  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ code: code, user: user, dataUpdatedAt: dataUpdatedAt, savedAt: Date.now() }));
 }
 
 function getSavedAuth(){
@@ -776,8 +774,8 @@ function checkAccessCode(code){
     .then(function(data){
       setAuthLoading(false);
       if (data && data.ok) {
-        saveAuth(code, data.user);
-        showApp(data.user);
+        saveAuth(code, data.user, data.dataUpdatedAt);
+        showApp(data.user, data.dataUpdatedAt);
       } else {
         showAuthError();
       }
@@ -821,7 +819,7 @@ document.getElementById('auth-code-input').addEventListener('keydown', function(
   // 2. Збережена сесія на пристрої — довіряємо офлайн, без повторного запиту
   var saved = getSavedAuth();
   if (saved && saved.user) {
-    showApp(saved.user);
+    showApp(saved.user, saved.dataUpdatedAt);
     return;
   }
 
