@@ -884,15 +884,6 @@ window.addEventListener('online', updateOnlineStatus);
 window.addEventListener('offline', updateOnlineStatus);
 updateOnlineStatus();
 
-function canShareFiles(mime){
-  try {
-    var testFile = new File([new Uint8Array([0])], "test", { type: mime || "application/pdf" });
-    return !!(navigator.canShare && navigator.canShare({ files: [testFile] }));
-  } catch (e) {
-    return false;
-  }
-}
-
 function byteArrayFromBase64(base64){
   var byteChars = atob(base64);
   var byteNumbers = new Array(byteChars.length);
@@ -909,33 +900,6 @@ function downloadBlobFallback(byteArray, filename, mime){
   link.click();
   document.body.removeChild(link);
   setTimeout(function(){ URL.revokeObjectURL(link.href); }, 5000);
-}
-
-// На телефонах (Android/iOS) відкриває системне вікно "Поділитися" з файлом —
-// звідти можна надіслати файл собі через WhatsApp/Signal/пошту тощо. На
-// комп'ютері Web Share API з файлами не підтримується — там просто
-// завантажується файл, як і раніше.
-function shareOrDownloadBlob(byteArray, filename, mime, shareTitle){
-  var file;
-  try {
-    file = new File([byteArray], filename, { type: mime });
-  } catch (e) {
-    downloadBlobFallback(byteArray, filename, mime);
-    return;
-  }
-
-  if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    try {
-      navigator.share({ files: [file], title: shareTitle || filename }).catch(function(err){
-        if (err && err.name === 'AbortError') return; // користувач сам закрив вікно — це не помилка
-        downloadBlobFallback(byteArray, filename, mime);
-      });
-    } catch (e) {
-      downloadBlobFallback(byteArray, filename, mime);
-    }
-    return;
-  }
-  downloadBlobFallback(byteArray, filename, mime);
 }
 
 // ---------- Пошук військовослужбовця ----------
@@ -1066,18 +1030,7 @@ function downloadAwardCard(idx){
 
       var byteArray = byteArrayFromBase64(data.pdfBase64);
       var filename = data.filename || 'Нагородна_картка.pdf';
-
-      if (canShareFiles('application/pdf')) {
-        btn.innerHTML = 'Натисніть, щоб поділитися файлом';
-        btn.disabled = false;
-        btn.onclick = function(){
-          shareOrDownloadBlob(byteArray, filename, 'application/pdf', filename);
-          btn.innerHTML = originalText;
-          btn.onclick = function(){ downloadAwardCard(idx); };
-        };
-      } else {
-        downloadBlobFallback(byteArray, filename, 'application/pdf');
-      }
+      downloadBlobFallback(byteArray, filename, 'application/pdf');
     })
     .catch(function(){
       btn.innerHTML = originalText;
@@ -1852,7 +1805,6 @@ function renderStatsUnitDetail(data){
 
 function downloadStatsFile(action, unitName, field, mime, btn){
   var originalText = btn.textContent;
-  var originalOnclick = btn.onclick;
   btn.textContent = 'Формую...';
   btn.disabled = true;
 
@@ -1873,18 +1825,7 @@ function downloadStatsFile(action, unitName, field, mime, btn){
 
       var byteArray = byteArrayFromBase64(data[field]);
       var filename = data.filename || 'Звіт';
-
-      if (canShareFiles(mime)) {
-        btn.textContent = 'Поділитися';
-        btn.disabled = false;
-        btn.onclick = function(){
-          shareOrDownloadBlob(byteArray, filename, mime, filename);
-          btn.textContent = originalText;
-          btn.onclick = originalOnclick;
-        };
-      } else {
-        downloadBlobFallback(byteArray, filename, mime);
-      }
+      downloadBlobFallback(byteArray, filename, mime);
     })
     .catch(function(err){
       btn.textContent = originalText;
