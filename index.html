@@ -916,15 +916,27 @@ function downloadBlobFallback(byteArray, filename, mime){
 // комп'ютері Web Share API з файлами не підтримується — там просто
 // завантажується файл, як і раніше.
 function shareOrDownloadBlob(byteArray, filename, mime, shareTitle){
+  var file;
   try {
-    var file = new File([byteArray], filename, { type: mime });
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    file = new File([byteArray], filename, { type: mime });
+  } catch (e) {
+    downloadBlobFallback(byteArray, filename, mime);
+    return;
+  }
+
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
       navigator.share({ files: [file], title: shareTitle || filename }).catch(function(err){
-        if (!err || err.name !== 'AbortError') downloadBlobFallback(byteArray, filename, mime);
+        if (err && err.name === 'AbortError') return; // користувач сам закрив вікно — це не помилка
+        alert('ДІАГНОСТИКА (тимчасово): navigator.share відхилив проміс — ' + (err && err.name) + ': ' + (err && err.message));
+        downloadBlobFallback(byteArray, filename, mime);
       });
-      return;
+    } catch (e) {
+      alert('ДІАГНОСТИКА (тимчасово): navigator.share кинув виняток синхронно — ' + (e && e.name) + ': ' + (e && e.message));
+      downloadBlobFallback(byteArray, filename, mime);
     }
-  } catch (e) {}
+    return;
+  }
   downloadBlobFallback(byteArray, filename, mime);
 }
 
