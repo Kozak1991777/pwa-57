@@ -125,8 +125,10 @@ header.topbar .bell svg{width:22px;height:22px;}
 
 /* SCREENS */
 main{flex:1;overflow-y:auto;padding:clamp(10px, 2.5vh, 16px) 16px calc(90px + var(--safe-bottom));}
+main.home-fit{overflow:hidden;}
 .screen{display:none;}
 .screen.active{display:block;animation:fadein .15s ease;}
+#screen-home.active{display:flex;flex-direction:column;height:100%;}
 @keyframes fadein{from{opacity:0}to{opacity:1}}
 
 .card{
@@ -850,6 +852,7 @@ function navigate(screen){
   SCREENS.forEach(s => {
     document.getElementById('screen-' + s).classList.toggle('active', s === screen);
   });
+  document.getElementById('main').classList.toggle('home-fit', screen === 'home');
   if (screen === 'reference') openReference();
   if (screen === 'stats') openStats();
   document.querySelectorAll('nav.bottombar button').forEach(btn => {
