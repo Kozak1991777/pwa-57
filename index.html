@@ -1566,7 +1566,7 @@ function renderStatsGeneral(data){
       },
       scales: {
         x: { ticks: { color: colors.text, font: { size: 10 } }, grid: { color: colors.grid }, grace: '10%' },
-        y: { ticks: { color: colors.text, font: { size: 10 }, callback: function(val){ return wrapChartLabel(this.getLabelForValue(val), 16); } }, grid: { display: false } }
+        y: { ticks: { color: colors.text, font: { size: 10 }, autoSkip: false, callback: function(val){ return wrapChartLabel(this.getLabelForValue(val), 16); } }, grid: { display: false } }
       }
     },
     plugins: [ChartDataLabels]
@@ -1796,7 +1796,7 @@ function renderStatsUnitDetail(data){
       },
       scales: {
         x: { ticks: { color: colors.text, font: { size: 10 } }, grid: { color: colors.grid }, grace: '10%' },
-        y: { ticks: { color: colors.text, font: { size: 10 }, callback: function(val){ return wrapChartLabel(this.getLabelForValue(val), 16); } }, grid: { display: false } }
+        y: { ticks: { color: colors.text, font: { size: 10 }, autoSkip: false, callback: function(val){ return wrapChartLabel(this.getLabelForValue(val), 16); } }, grid: { display: false } }
       }
     },
     plugins: [ChartDataLabels]
