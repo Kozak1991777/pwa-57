@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nagorody-57ompbr-v1';
+const CACHE_NAME = 'nagorody-57ompbr-v2';
 const APP_SHELL = [
   './index.html',
   './manifest.json',
@@ -49,10 +49,13 @@ self.addEventListener('fetch', function (event) {
     return;
   }
 
-  // Навігаційні запити (відкриття сторінки) — мережа спочатку, офлайн-сторінка як резерв
+  // Навігаційні запити (відкриття сторінки/застосунку) — мережа спочатку,
+  // офлайн-сторінка як резерв. cache:'no-store' — щоб браузерний HTTP-кеш
+  // теж не підсовував стару версію index.html, навіть якщо GitHub Pages
+  // віддає його з дозволяючими кешування заголовками.
   if (req.mode === 'navigate') {
     event.respondWith(
-      fetch(req).catch(function () {
+      fetch(req, { cache: 'no-store' }).catch(function () {
         return caches.match('./offline.html');
       })
     );
