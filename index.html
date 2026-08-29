@@ -1554,8 +1554,8 @@ function renderStatsGeneral(data){
   statsChartCat = new Chart(document.getElementById('stats-chart-cat'), {
     type: 'bar',
     data: {
-      labels: data.categories.map(function(c){ return c.label; }),
-      datasets: [{ data: data.categories.map(function(c){ return c.count; }), backgroundColor: colors.accent, borderRadius: 4 }]
+      labels: data.categories.slice().sort(function(a,b){return b.count-a.count;}).map(function(c){ return c.label; }),
+      datasets: [{ data: data.categories.slice().sort(function(a,b){return b.count-a.count;}).map(function(c){ return c.count; }), backgroundColor: colors.accent, borderRadius: 4 }]
     },
     options: {
       indexAxis: 'y',
@@ -1784,8 +1784,8 @@ function renderStatsUnitDetail(data){
   statsChartCat = new Chart(document.getElementById('stats-chart-unit'), {
     type: 'bar',
     data: {
-      labels: data.categories.map(function(c){ return c.label; }),
-      datasets: [{ data: data.categories.map(function(c){ return c.count; }), backgroundColor: colors.accent, borderRadius: 4 }]
+      labels: data.categories.slice().sort(function(a,b){return b.count-a.count;}).map(function(c){ return c.label; }),
+      datasets: [{ data: data.categories.slice().sort(function(a,b){return b.count-a.count;}).map(function(c){ return c.count; }), backgroundColor: colors.accent, borderRadius: 4 }]
     },
     options: {
       indexAxis: 'y',
