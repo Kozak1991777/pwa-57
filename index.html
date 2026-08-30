@@ -1056,8 +1056,11 @@ function downloadAwardCard(idx){
       var byteArray = byteArrayFromBase64(data.pdfBase64);
       var filename = data.filename || 'Нагородна_картка.pdf';
       downloadBlobFallback(byteArray, filename, 'application/pdf');
-      btn.innerHTML = originalText;
-      btn.disabled = false;
+      btn.innerHTML = '✓ Завантажено';
+      setTimeout(function(){
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+      }, 1500);
     })
     .catch(function(){
       btn.innerHTML = originalText;
@@ -1853,8 +1856,11 @@ function downloadStatsFile(action, unitName, field, mime, btn){
       var byteArray = byteArrayFromBase64(data[field]);
       var filename = data.filename || 'Звіт';
       downloadBlobFallback(byteArray, filename, mime);
-      btn.textContent = originalText;
-      btn.disabled = false;
+      btn.textContent = '✓ Завантажено';
+      setTimeout(function(){
+        btn.textContent = originalText;
+        btn.disabled = false;
+      }, 1500);
     })
     .catch(function(err){
       btn.textContent = originalText;
