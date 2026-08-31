@@ -431,8 +431,9 @@ nav.bottombar button.active .indicator{
       <h1>Нагороди</h1>
       <p>57 окрема мотопіхотна бригада</p>
     </div>
-    <button class="bell" aria-label="Сповіщення">
+    <button class="bell" aria-label="Сповіщення" onclick="openDigest()" style="position:relative;">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+      <span id="bell-dot" style="display:none; position:absolute; top:2px; right:2px; width:9px; height:9px; border-radius:50%; background:var(--zoloto); border:2px solid var(--header-grad-b);"></span>
     </button>
   </header>
 
@@ -536,6 +537,17 @@ nav.bottombar button.active .indicator{
       </div>
 
       <div id="stats-body"><div class="search-loading">Завантажую статистику...</div></div>
+    </section>
+
+    <!-- DIGEST -->
+    <section class="screen" id="screen-digest">
+      <div class="screen-header">
+        <button class="back-btn" onclick="navigate('home')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <h2>Дайджест місяця</h2>
+      </div>
+      <div id="digest-body"><div class="search-loading">Завантажую дайджест...</div></div>
     </section>
 
     <!-- REFERENCE -->
@@ -653,7 +665,7 @@ nav.bottombar button.active .indicator{
 
       <div class="card">
         <p class="card-title">Перевірка попередніх нагород</p>
-        <p class="body-note">Перед підготовкою рапорту, або подання, обов'язково перевіряйте через розділ "Пошук" якими нагородами військовослужбовець був нагороджений раніше.</p>
+        <p class="body-note">Перед підготовкою рапорту, або подання, перевірте через розділ "Пошук", чи не нагороджувався військовослужбовець цією ж нагородою раніше.</p>
       </div>
 
       <div class="card" style="border-color:var(--zoloto);">
@@ -745,6 +757,7 @@ function showApp(user, dataUpdatedAt){
   document.getElementById('last-updated').textContent = "Дані оновлено: " + (dataUpdatedAt || 'невідомо');
   document.getElementById('auth-gate').classList.add('hidden');
   document.getElementById('app').style.display = 'flex';
+  loadDigest();
 }
 
 function saveAuth(code, user, dataUpdatedAt){
@@ -855,7 +868,7 @@ document.getElementById('auth-code-input').addEventListener('keydown', function(
 })();
 
 // ---------- Навігація (hash-based SPA роутер) ----------
-const SCREENS = ['home','search','stats','reference','docs','howto','more'];
+const SCREENS = ['home','search','stats','digest','reference','docs','howto','more'];
 const NAV_SCREENS = ['home','stats','more']; // ті, що мають кнопку в bottombar
 
 function goToSearchFromHome(prefill){
@@ -926,6 +939,75 @@ function downloadBlobFallback(byteArray, filename, mime){
   link.click();
   document.body.removeChild(link);
   setTimeout(function(){ URL.revokeObjectURL(link.href); }, 5000);
+}
+
+// ---------- Щомісячний дайджест (дзвіночок) ----------
+var DIGEST_SEEN_KEY = 'nagorody_digest_seen_month';
+var digestData = null;
+
+function loadDigest(){
+  var url = API_BASE_URL + '?action=digest&code=' + encodeURIComponent(getAuthCode());
+  fetch(url)
+    .then(function(res){ return res.json(); })
+    .then(function(data){
+      if (data && data.ok) {
+        digestData = data;
+        var seen = localStorage.getItem(DIGEST_SEEN_KEY);
+        var dot = document.getElementById('bell-dot');
+        if (dot) dot.style.display = (seen !== data.monthKey && data.total > 0) ? 'block' : 'none';
+      }
+    })
+    .catch(function(){ /* тихо ігноруємо — дзвіночок просто лишиться без позначки */ });
+}
+
+function openDigest(){
+  navigate('digest');
+  var body = document.getElementById('digest-body');
+
+  function render(){
+    if (!digestData) {
+      body.innerHTML = '<p class="placeholder-note">Не вдалося завантажити дайджест.</p>';
+      return;
+    }
+    if (digestData.total === 0) {
+      body.innerHTML = '<p class="placeholder-note">За ' + escapeHtml(digestData.monthLabel) + ' нових нагороджень не було.</p>';
+      return;
+    }
+    body.innerHTML =
+      '<div class="card">' +
+      '<p class="card-title">' + escapeHtml(digestData.monthLabel) + '</p>' +
+      '<p class="stats-metric-value">' + digestData.total + '</p>' +
+      '<p class="body-note" style="margin-top:2px;">військовослужбовців нагороджено</p>' +
+      '</div>' +
+      '<div class="card">' +
+      '<p class="card-title">Найчастіша нагорода місяця</p>' +
+      '<p class="body-note">' + escapeHtml(digestData.topAward) + '</p>' +
+      '</div>' +
+      '<div class="card">' +
+      '<p class="card-title">Підрозділ місяця</p>' +
+      '<p class="body-note">' + escapeHtml(digestData.topUnit) + '</p>' +
+      '</div>';
+
+    localStorage.setItem(DIGEST_SEEN_KEY, digestData.monthKey);
+    var dot = document.getElementById('bell-dot');
+    if (dot) dot.style.display = 'none';
+  }
+
+  if (digestData) {
+    render();
+  } else {
+    body.innerHTML = '<div class="search-loading">Завантажую дайджест...</div>';
+    var url = API_BASE_URL + '?action=digest&code=' + encodeURIComponent(getAuthCode());
+    fetch(url)
+      .then(function(res){ return res.json(); })
+      .then(function(data){
+        if (data && data.ok) { digestData = data; render(); }
+        else body.innerHTML = '<p class="placeholder-note">Не вдалося завантажити дайджест.</p>';
+      })
+      .catch(function(){
+        body.innerHTML = '<p class="placeholder-note">Немає з\'єднання з сервером.</p>';
+      });
+  }
 }
 
 // ---------- Пошук військовослужбовця ----------
