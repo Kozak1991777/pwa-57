@@ -977,9 +977,14 @@ function openDigest(){
       '<div class="card">' +
       '<p class="card-title">🎖 Дайджест нагород — ' + escapeHtml(digestData.monthLabel) + '</p>' +
       '<p class="body-note" style="margin-top:8px;">За минулий місяць <b>' + digestData.total + '</b> наших побратимів і посестер отримали заслужені нагороди.</p>' +
-      '<p class="body-note" style="margin-top:14px;">🏅 Топ-нагорода місяця: ' + escapeHtml(digestData.topAward) + '</p>' +
-      '<p class="body-note" style="margin-top:8px;">🏆 Найбільше нагороджених у: ' + escapeHtml(digestData.topUnit) + '</p>' +
-      '<p class="body-note" style="margin-top:14px;">Дякуємо за службу! Слава Україні! 🇺🇦</p>' +
+      '<p class="body-note" style="margin-top:14px;">Топ-нагорода місяця: ' + escapeHtml(digestData.topAward) + '</p>' +
+      '<p class="body-note" style="margin-top:8px;">Найбільше нагороджених у: ' + escapeHtml(digestData.topUnit) + '</p>' +
+      '<p class="body-note" style="margin-top:14px;">Дякуємо за службу! Слава Україні! ' +
+      '<svg width="16" height="11" viewBox="0 0 16 11" style="vertical-align:-1px; display:inline-block; border-radius:1px;">' +
+      '<rect width="16" height="5.5" y="0" fill="#0057B7"/>' +
+      '<rect width="16" height="5.5" y="5.5" fill="#FFD700"/>' +
+      '</svg>' +
+      '</p>' +
       '</div>';
 
     localStorage.setItem(DIGEST_SEEN_KEY, digestData.monthKey);
