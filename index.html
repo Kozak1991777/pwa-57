@@ -570,7 +570,7 @@ nav.bottombar button.active .indicator{
         <h2>Документи</h2>
       </div>
 
-      <p class="card-title" style="margin:4px 0 8px;">Рапорт та подання</p>
+      <p class="card-title" style="margin:4px 0 8px;">Рапорт та подання (державні, МОУ, ГК)</p>
 
       <a class="row-card" style="text-decoration:none;color:inherit;" href="https://docs.google.com/document/d/1Z1xN9BEUObhpHi95YoRZH-05ayJKFBqs/view" target="_blank" rel="noopener">
         <div class="icon-wrap">
@@ -665,7 +665,7 @@ nav.bottombar button.active .indicator{
 
       <div class="card">
         <p class="card-title">Перевірка попередніх нагород</p>
-        <p class="body-note">Перед підготовкою рапорту, або подання, перевірте через розділ "Пошук", чи не нагороджувався військовослужбовець цією ж нагородою раніше.</p>
+        <p class="body-note">Перед підготовкою рапорту, або подання, обов'язково перевіряйте через розділ "Пошук" якими нагородами військовослужбовець був нагороджений раніше.</p>
       </div>
 
       <div class="card" style="border-color:var(--zoloto);">
@@ -978,14 +978,8 @@ function openDigest(){
       '<p class="card-title">' + escapeHtml(digestData.monthLabel) + '</p>' +
       '<p class="stats-metric-value">' + digestData.total + '</p>' +
       '<p class="body-note" style="margin-top:2px;">військовослужбовців нагороджено</p>' +
-      '</div>' +
-      '<div class="card">' +
-      '<p class="card-title">Найчастіша нагорода місяця</p>' +
-      '<p class="body-note">' + escapeHtml(digestData.topAward) + '</p>' +
-      '</div>' +
-      '<div class="card">' +
-      '<p class="card-title">Підрозділ місяця</p>' +
-      '<p class="body-note">' + escapeHtml(digestData.topUnit) + '</p>' +
+      '<p class="body-note" style="margin-top:14px;"><b>Найчастіша нагорода місяця:</b><br>' + escapeHtml(digestData.topAward) + '</p>' +
+      '<p class="body-note" style="margin-top:10px;"><b>Підрозділ місяця:</b><br>' + escapeHtml(digestData.topUnit) + '</p>' +
       '</div>';
 
     localStorage.setItem(DIGEST_SEEN_KEY, digestData.monthKey);
