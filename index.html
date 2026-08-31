@@ -935,6 +935,7 @@ function navigate(screen){
   if (screen === 'reference') openReference();
   if (screen === 'stats') openStats();
   if (screen === 'admin') openAdminStats();
+  if (screen === 'docs' || screen === 'howto') logPwaView(screen);
   document.querySelectorAll('nav.bottombar button').forEach(btn => {
     var target = btn.getAttribute('data-screen');
     var isActive = (target === screen) ||
@@ -1095,6 +1096,29 @@ function openAdminStats(){
       }
       html += '</div>';
 
+      if (data.weeklyLog) {
+        var wl = data.weeklyLog;
+        html += '<div class="card">';
+        html += '<p class="card-title">Активність за 7 днів</p>';
+        html += '<p class="body-note" style="margin-top:8px;">Унікальних користувачів: <b>' + wl.uniqueUsers + '</b></p>';
+        html += '<p class="body-note" style="margin-top:6px;">Всього дій: <b>' + wl.totalActions + '</b></p>';
+
+        if (wl.sections && wl.sections.length > 0) {
+          html += '<p class="body-note" style="margin-top:12px;"><b>Популярні розділи:</b></p>';
+          for (var s = 0; s < wl.sections.length; s++) {
+            html += '<p class="body-note" style="margin-top:4px;">' + escapeHtml(wl.sections[s].name) + ': <b>' + wl.sections[s].count + '</b></p>';
+          }
+        }
+
+        if (wl.topQueries && wl.topQueries.length > 0) {
+          html += '<p class="body-note" style="margin-top:12px;"><b>Топ пошукових запитів:</b></p>';
+          for (var q = 0; q < wl.topQueries.length; q++) {
+            html += '<p class="body-note" style="margin-top:4px;">' + (q + 1) + '. ' + escapeHtml(wl.topQueries[q].query) + ' (' + wl.topQueries[q].count + ')</p>';
+          }
+        }
+        html += '</div>';
+      }
+
       body.innerHTML = html;
     })
     .catch(function(){
@@ -1148,6 +1172,14 @@ function copyAdminLink(){
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(text);
   }
+}
+
+// Технічний пінг для статичних екранів (Документи/Як нагородити), які самі
+// по собі не звертаються до бекенду — потрібен лише для тижневого звіту
+// активності. Тихо ігнорує будь-які помилки/офлайн.
+function logPwaView(section){
+  var url = API_BASE_URL + '?action=logView&code=' + encodeURIComponent(getAuthCode()) + '&section=' + encodeURIComponent(section);
+  fetch(url).catch(function(){});
 }
 
 // ---------- Пошук військовослужбовця ----------
