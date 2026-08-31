@@ -975,11 +975,11 @@ function openDigest(){
     }
     body.innerHTML =
       '<div class="card">' +
-      '<p class="card-title">' + escapeHtml(digestData.monthLabel) + '</p>' +
-      '<p class="stats-metric-value">' + digestData.total + '</p>' +
-      '<p class="body-note" style="margin-top:2px;">військовослужбовців нагороджено</p>' +
-      '<p class="body-note" style="margin-top:14px;"><b>Найчастіша нагорода місяця:</b><br>' + escapeHtml(digestData.topAward) + '</p>' +
-      '<p class="body-note" style="margin-top:10px;"><b>Підрозділ місяця:</b><br>' + escapeHtml(digestData.topUnit) + '</p>' +
+      '<p class="card-title">🎖 Дайджест нагород — ' + escapeHtml(digestData.monthLabel) + '</p>' +
+      '<p class="body-note" style="margin-top:8px;">За минулий місяць <b>' + digestData.total + '</b> наших побратимів і посестер отримали заслужені нагороди.</p>' +
+      '<p class="body-note" style="margin-top:14px;">🏅 Топ-нагорода місяця: ' + escapeHtml(digestData.topAward) + '</p>' +
+      '<p class="body-note" style="margin-top:8px;">🏆 Найбільше нагороджених у: ' + escapeHtml(digestData.topUnit) + '</p>' +
+      '<p class="body-note" style="margin-top:14px;">Дякуємо за службу! Слава Україні! 🇺🇦</p>' +
       '</div>';
 
     localStorage.setItem(DIGEST_SEEN_KEY, digestData.monthKey);
