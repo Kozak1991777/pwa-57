@@ -717,6 +717,21 @@ nav.bottombar button.active .indicator{
         </button>
         <h2>Адмін-статистика</h2>
       </div>
+
+      <div class="card">
+        <p class="card-title">Додати користувача</p>
+        <div class="search-input-row" style="margin-top:10px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
+          <input type="text" id="admin-new-name" placeholder="Прізвище Ім'я По-батькові">
+        </div>
+        <div class="search-input-row" style="margin-top:8px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h1M14 9h1M9 13h1M14 13h1"/></svg>
+          <input type="text" id="admin-new-unit" placeholder="Підрозділ">
+        </div>
+        <button class="theme-btn active" style="width:100%;margin-top:12px;" onclick="submitAdminAddUser()">Додати користувача</button>
+        <div id="admin-add-result" style="margin-top:10px;"></div>
+      </div>
+
       <div id="admin-body"><div class="search-loading">Завантажую...</div></div>
     </section>
 
@@ -1085,6 +1100,54 @@ function openAdminStats(){
     .catch(function(){
       body.innerHTML = '<p class="placeholder-note">Немає з\'єднання з сервером.</p>';
     });
+}
+
+function submitAdminAddUser(){
+  var nameInput = document.getElementById('admin-new-name');
+  var unitInput = document.getElementById('admin-new-unit');
+  var resultBox = document.getElementById('admin-add-result');
+
+  var fullName = nameInput.value.trim();
+  var unit = unitInput.value.trim();
+
+  if (!fullName) {
+    resultBox.innerHTML = '<p class="body-note" style="color:#C0392B;">Введіть ПІБ.</p>';
+    return;
+  }
+
+  resultBox.innerHTML = '<div class="search-loading">Додаю...</div>';
+
+  var url = API_BASE_URL + '?action=adminAddUser&code=' + encodeURIComponent(getAuthCode())
+    + '&name=' + encodeURIComponent(fullName)
+    + '&unit=' + encodeURIComponent(unit);
+
+  fetch(url)
+    .then(function(res){ return res.json(); })
+    .then(function(data){
+      if (!data || !data.ok) {
+        resultBox.innerHTML = '<p class="body-note" style="color:#C0392B;">Не вдалося додати користувача.</p>';
+        return;
+      }
+      resultBox.innerHTML =
+        '<p class="body-note">Користувача додано. Персональне посилання:</p>' +
+        '<p class="body-note" id="admin-new-link" style="word-break:break-all;margin-top:4px;font-weight:bold;">' + escapeHtml(data.link) + '</p>' +
+        '<button class="theme-btn" style="width:100%;margin-top:8px;" onclick="copyAdminLink()">Скопіювати посилання</button>';
+      nameInput.value = '';
+      unitInput.value = '';
+      openAdminStats();
+    })
+    .catch(function(){
+      resultBox.innerHTML = '<p class="body-note" style="color:#C0392B;">Немає з\'єднання з сервером.</p>';
+    });
+}
+
+function copyAdminLink(){
+  var linkEl = document.getElementById('admin-new-link');
+  if (!linkEl) return;
+  var text = linkEl.textContent;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text);
+  }
 }
 
 // ---------- Пошук військовослужбовця ----------
