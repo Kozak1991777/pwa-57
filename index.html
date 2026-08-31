@@ -695,7 +695,29 @@ nav.bottombar button.active .indicator{
           </button>
         </div>
       </div>
-      <p class="placeholder-note">Керування розсилкою дайджесту, профіль та адмін-панель (для адміністраторів) з'являться тут на наступних етапах.</p>
+      <p class="placeholder-note">Керування розсилкою дайджесту та профіль з'являться тут на наступних етапах.</p>
+
+      <a class="row-card" id="admin-menu-item" style="display:none;text-decoration:none;color:inherit;" onclick="navigate('admin')">
+        <div class="icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="5" width="3" height="13"/></svg>
+        </div>
+        <div class="row-text">
+          <p class="row-title">Адмін-статистика</p>
+          <p class="row-sub">Активність користувачів застосунку</p>
+        </div>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+      </a>
+    </section>
+
+    <!-- ADMIN STATS -->
+    <section class="screen" id="screen-admin">
+      <div class="screen-header">
+        <button class="back-btn" onclick="navigate('more')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <h2>Адмін-статистика</h2>
+      </div>
+      <div id="admin-body"><div class="search-loading">Завантажую...</div></div>
     </section>
 
   </main>
@@ -757,6 +779,10 @@ function showApp(user, dataUpdatedAt){
   document.getElementById('last-updated').textContent = "Дані оновлено: " + (dataUpdatedAt || 'невідомо');
   document.getElementById('auth-gate').classList.add('hidden');
   document.getElementById('app').style.display = 'flex';
+
+  var adminItem = document.getElementById('admin-menu-item');
+  if (adminItem) adminItem.style.display = user.isAdmin ? 'flex' : 'none';
+
   loadDigest();
 }
 
@@ -868,7 +894,7 @@ document.getElementById('auth-code-input').addEventListener('keydown', function(
 })();
 
 // ---------- Навігація (hash-based SPA роутер) ----------
-const SCREENS = ['home','search','stats','digest','reference','docs','howto','more'];
+const SCREENS = ['home','search','stats','digest','reference','docs','howto','more','admin'];
 const NAV_SCREENS = ['home','stats','more']; // ті, що мають кнопку в bottombar
 
 function goToSearchFromHome(prefill){
@@ -893,11 +919,12 @@ function navigate(screen){
   document.getElementById('main').classList.toggle('home-fit', screen === 'home');
   if (screen === 'reference') openReference();
   if (screen === 'stats') openStats();
+  if (screen === 'admin') openAdminStats();
   document.querySelectorAll('nav.bottombar button').forEach(btn => {
     var target = btn.getAttribute('data-screen');
     var isActive = (target === screen) ||
       (target === 'home' && screen === 'search') ||
-      (NAV_SCREENS.indexOf(screen) === -1 && target === 'more' && ['reference','docs','howto'].indexOf(screen) !== -1);
+      (NAV_SCREENS.indexOf(screen) === -1 && target === 'more' && ['reference','docs','howto','admin'].indexOf(screen) !== -1);
     btn.classList.toggle('active', isActive);
   });
   document.getElementById('main').scrollTop = 0;
@@ -1007,6 +1034,57 @@ function openDigest(){
         body.innerHTML = '<p class="placeholder-note">Немає з\'єднання з сервером.</p>';
       });
   }
+}
+
+// ---------- Адмін-статистика ----------
+function openAdminStats(){
+  var body = document.getElementById('admin-body');
+  body.innerHTML = '<div class="search-loading">Завантажую...</div>';
+
+  var url = API_BASE_URL + '?action=adminStats&code=' + encodeURIComponent(getAuthCode());
+  fetch(url)
+    .then(function(res){ return res.json(); })
+    .then(function(data){
+      if (!data || !data.ok) {
+        body.innerHTML = '<p class="placeholder-note">Не вдалося завантажити статистику.</p>';
+        return;
+      }
+
+      var html =
+        '<div class="card">' +
+        '<p class="card-title">Всього користувачів</p>' +
+        '<p class="stats-metric-value">' + data.total + '</p>' +
+        '</div>';
+
+      html += '<div class="card">';
+      html += '<p class="card-title">Активні за 7 днів (' + data.active.length + ')</p>';
+      if (data.active.length === 0) {
+        html += '<p class="body-note">Немає активних користувачів за останній тиждень.</p>';
+      } else {
+        for (var a = 0; a < data.active.length; a++) {
+          var u = data.active[a];
+          html += '<p class="body-note" style="margin-top:' + (a === 0 ? '8px' : '10px') + ';"><b>' + escapeHtml(u.name) + '</b> (' + escapeHtml(u.unit) + ') — ' + escapeHtml(u.lastSeenLabel) + '</p>';
+        }
+      }
+      html += '</div>';
+
+      html += '<div class="card">';
+      html += '<p class="card-title">Неактивні (' + data.inactive.length + ')</p>';
+      if (data.inactive.length === 0) {
+        html += '<p class="body-note">Усі користувачі заходили протягом останнього тижня.</p>';
+      } else {
+        for (var n = 0; n < data.inactive.length; n++) {
+          var iu = data.inactive[n];
+          html += '<p class="body-note" style="margin-top:' + (n === 0 ? '8px' : '10px') + ';">' + escapeHtml(iu.name) + ' (' + escapeHtml(iu.unit) + ') — ' + escapeHtml(iu.statusLabel) + '</p>';
+        }
+      }
+      html += '</div>';
+
+      body.innerHTML = html;
+    })
+    .catch(function(){
+      body.innerHTML = '<p class="placeholder-note">Немає з\'єднання з сервером.</p>';
+    });
 }
 
 // ---------- Пошук військовослужбовця ----------
