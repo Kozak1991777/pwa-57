@@ -394,6 +394,30 @@ nav.bottombar button.active .indicator{
 .auth-spinner.show{display:block;}
 @keyframes spin{to{transform:rotate(360deg);}}
 
+/* LOCK GATE (PIN / біометрія) — той самий вигляд, що auth-gate, вищий z-index,
+   бо може накриватись поверх уже видимого #app */
+#lock-gate{
+  position:fixed;inset:0;z-index:200;
+  background:var(--bg);
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  padding:24px;
+}
+#lock-gate.show{display:flex;}
+.lock-pin-dots{display:flex;justify-content:center;gap:14px;margin:20px 0 24px;}
+.lock-pin-dots span{
+  width:14px;height:14px;border-radius:50%;border:1.5px solid var(--border);
+  background:transparent;transition:background .15s,border-color .15s;
+}
+.lock-pin-dots span.filled{background:var(--zoloto);border-color:var(--zoloto);}
+.lock-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:100%;max-width:260px;margin:0 auto;}
+.lock-keypad button{
+  height:58px;border-radius:50%;background:var(--surface-2);border:1px solid var(--border);
+  color:var(--text-primary);font-size:20px;font-weight:700;
+}
+.lock-keypad button.lock-key-empty{background:transparent;border:none;}
+.lock-biometric-icon{width:64px;height:64px;margin:8px auto 20px;color:var(--zoloto);}
+.lock-link-btn{background:none;border:none;color:var(--zoloto);font-size:13px;font-weight:700;margin-top:16px;text-decoration:underline;}
+
 /* offline banner */
 #offline-banner{
   display:none;background:var(--zoloto);color:var(--zoloto-on);text-align:center;
@@ -420,6 +444,33 @@ nav.bottombar button.active .indicator{
     <p class="auth-error" id="auth-error">Невірний код доступу. Перевірте і спробуйте ще раз.</p>
     <button class="btn-primary" id="auth-submit-btn" onclick="submitAuthCode()">Увійти</button>
     <div class="auth-spinner" id="auth-spinner" style="margin-top:16px;"></div>
+  </div>
+</div>
+
+<!-- LOCK GATE: локальний замок (PIN або біометрія), поверх уже автентифікованої сесії -->
+<div id="lock-gate">
+  <div class="auth-box" id="lock-pin-view">
+    <div class="emblem"><img src="icons/icon-192.png" alt="Емблема"></div>
+    <h2>Застосунок заблоковано</h2>
+    <p class="sub" id="lock-pin-sub">Введіть PIN-код</p>
+    <div class="lock-pin-dots" id="lock-pin-dots">
+      <span></span><span></span><span></span><span></span>
+    </div>
+    <p class="auth-error" id="lock-pin-error">Невірний PIN. Спробуйте ще раз.</p>
+    <div class="lock-keypad" id="lock-keypad"></div>
+    <button class="lock-link-btn" id="lock-use-biometric-btn" style="display:none;" onclick="tryBiometricUnlock()">Використати біометрію</button>
+  </div>
+
+  <div class="auth-box" id="lock-biometric-view" style="display:none;">
+    <svg class="lock-biometric-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+      <rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/>
+      <rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>
+    </svg>
+    <h2>Застосунок заблоковано</h2>
+    <p class="sub">Підтвердіть Face ID або відбиток пальця</p>
+    <p class="auth-error" id="lock-bio-error">Не вдалося підтвердити. Спробуйте ще раз.</p>
+    <button class="btn-primary" onclick="tryBiometricUnlock()">Спробувати ще раз</button>
+    <button class="lock-link-btn" onclick="showLockPinView()">Використати PIN-код</button>
   </div>
 </div>
 
@@ -695,6 +746,32 @@ nav.bottombar button.active .indicator{
           </button>
         </div>
       </div>
+
+      <div class="card">
+        <p class="card-title">Захист входу</p>
+        <p class="body-note" id="app-lock-status" style="margin-top:8px;">Вимкнено</p>
+
+        <div class="theme-toggle" id="app-lock-type-toggle" style="margin-top:10px;display:none;">
+          <button class="theme-btn" id="lock-type-btn-pin" onclick="selectLockSetupType('pin')">PIN-код</button>
+          <button class="theme-btn" id="lock-type-btn-biometric" onclick="selectLockSetupType('biometric')">Біометрія</button>
+        </div>
+
+        <div id="app-lock-setup-area" style="margin-top:12px;display:none;">
+          <div class="search-input-row">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+            <input type="password" id="lock-setup-pin-1" inputmode="numeric" maxlength="6" placeholder="Новий PIN (4-6 цифр)">
+          </div>
+          <div class="search-input-row" style="margin-top:8px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+            <input type="password" id="lock-setup-pin-2" inputmode="numeric" maxlength="6" placeholder="Повторіть PIN">
+          </div>
+          <p class="body-note" id="lock-setup-error" style="color:#C0392B;margin-top:6px;display:none;"></p>
+          <button class="theme-btn active" style="width:100%;margin-top:10px;" onclick="saveLockSetup()">Зберегти захист</button>
+        </div>
+
+        <button class="theme-btn" id="app-lock-enable-btn" style="width:100%;margin-top:10px;" onclick="toggleAppLockEnable()">Увімкнути захист входу</button>
+      </div>
+
       <p class="placeholder-note">Профіль з'явиться тут на наступних етапах.</p>
 
       <a class="row-card" id="admin-menu-item" style="display:none;text-decoration:none;color:inherit;" onclick="navigate('admin')">
@@ -877,6 +954,273 @@ document.getElementById('auth-code-input').addEventListener('keydown', function(
   if (e.key === 'Enter') submitAuthCode();
 });
 
+// ==============================================================================
+// ЛОКАЛЬНИЙ ЗАМОК ЗАСТОСУНКУ (PIN або біометрія) — додатковий шар захисту
+// ПОВЕРХ коду доступу, суто на пристрої. Не чіпає й не замінює
+// авторизацію на сервері: код доступу як був, так і лишається єдиним
+// джерелом правди щодо того, хто ти є в системі. Це лише локальний "замок
+// на телефон", щоб хтось сторонній, взявши в руки вже залогінений
+// пристрій, не міг одразу гортати нагороди/статистику.
+// ==============================================================================
+const LOCK_ENABLED_KEY = 'nagorody_lock_enabled';
+const LOCK_TYPE_KEY = 'nagorody_lock_type'; // 'pin' | 'biometric'
+const LOCK_PIN_HASH_KEY = 'nagorody_lock_pin_hash';
+const LOCK_WEBAUTHN_ID_KEY = 'nagorody_lock_webauthn_id';
+
+var lockPendingSetupType = null;
+var lockCurrentPinEntry = '';
+var lockUnlockedThisForeground = false;
+
+function isAppLockEnabled(){
+  return localStorage.getItem(LOCK_ENABLED_KEY) === '1';
+}
+function getAppLockType(){
+  return localStorage.getItem(LOCK_TYPE_KEY) || 'pin';
+}
+
+async function sha256Hex(text){
+  var enc = new TextEncoder().encode(text);
+  var buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(function(b){ return b.toString(16).padStart(2,'0'); }).join('');
+}
+
+// ---------- Налаштування (екран "Налаштування") ----------
+function refreshAppLockSettingsUI(){
+  var statusEl = document.getElementById('app-lock-status');
+  var enableBtn = document.getElementById('app-lock-enable-btn');
+  var typeToggle = document.getElementById('app-lock-type-toggle');
+  var setupArea = document.getElementById('app-lock-setup-area');
+
+  if (isAppLockEnabled()) {
+    var typeLabel = getAppLockType() === 'biometric' ? 'Біометрія (з резервним PIN)' : 'PIN-код';
+    statusEl.textContent = 'Увімкнено: ' + typeLabel;
+    enableBtn.textContent = 'Вимкнути захист входу';
+    typeToggle.style.display = 'none';
+    setupArea.style.display = 'none';
+  } else {
+    statusEl.textContent = 'Вимкнено';
+    enableBtn.textContent = 'Увімкнути захист входу';
+  }
+}
+
+function toggleAppLockEnable(){
+  if (isAppLockEnabled()) {
+    if (!confirm('Вимкнути захист входу на цьому пристрої?')) return;
+    localStorage.removeItem(LOCK_ENABLED_KEY);
+    localStorage.removeItem(LOCK_TYPE_KEY);
+    localStorage.removeItem(LOCK_PIN_HASH_KEY);
+    localStorage.removeItem(LOCK_WEBAUTHN_ID_KEY);
+    refreshAppLockSettingsUI();
+    return;
+  }
+  // Ще не увімкнено — показуємо вибір типу
+  document.getElementById('app-lock-type-toggle').style.display = 'flex';
+  document.getElementById('app-lock-enable-btn').style.display = 'none';
+}
+
+function selectLockSetupType(type){
+  lockPendingSetupType = type;
+  document.getElementById('lock-type-btn-pin').classList.toggle('active', type === 'pin');
+  document.getElementById('lock-type-btn-biometric').classList.toggle('active', type === 'biometric');
+  document.getElementById('app-lock-setup-area').style.display = 'block';
+  document.getElementById('lock-setup-error').style.display = 'none';
+}
+
+async function saveLockSetup(){
+  var pin1 = document.getElementById('lock-setup-pin-1').value.trim();
+  var pin2 = document.getElementById('lock-setup-pin-2').value.trim();
+  var errEl = document.getElementById('lock-setup-error');
+
+  if (!/^\d{4,6}$/.test(pin1)) {
+    errEl.textContent = 'PIN має складатись із 4-6 цифр.';
+    errEl.style.display = 'block';
+    return;
+  }
+  if (pin1 !== pin2) {
+    errEl.textContent = 'PIN-коди не співпадають.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  var hash = await sha256Hex(pin1);
+  localStorage.setItem(LOCK_PIN_HASH_KEY, hash);
+  localStorage.setItem(LOCK_TYPE_KEY, lockPendingSetupType || 'pin');
+
+  if (lockPendingSetupType === 'biometric') {
+    var registered = await registerBiometric();
+    if (!registered) {
+      errEl.textContent = 'Не вдалося зареєструвати біометрію на цьому пристрої. PIN збережено як резервний спосіб входу — можеш увімкнути захист з ним.';
+      errEl.style.display = 'block';
+      localStorage.setItem(LOCK_TYPE_KEY, 'pin');
+    }
+  }
+
+  localStorage.setItem(LOCK_ENABLED_KEY, '1');
+  document.getElementById('lock-setup-pin-1').value = '';
+  document.getElementById('lock-setup-pin-2').value = '';
+  document.getElementById('app-lock-enable-btn').style.display = 'block';
+  refreshAppLockSettingsUI();
+}
+
+// ---------- WebAuthn (біометрія як локальний ключ, без серверної перевірки) ----------
+function randomBytes(len){
+  var arr = new Uint8Array(len);
+  crypto.getRandomValues(arr);
+  return arr;
+}
+function bufToBase64(buf){
+  return btoa(String.fromCharCode.apply(null, new Uint8Array(buf)));
+}
+function base64ToBuf(b64){
+  var bin = atob(b64);
+  var buf = new Uint8Array(bin.length);
+  for (var i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+  return buf.buffer;
+}
+
+async function registerBiometric(){
+  if (!window.PublicKeyCredential) return false;
+  try {
+    var cred = await navigator.credentials.create({
+      publicKey: {
+        challenge: randomBytes(32),
+        rp: { name: 'Нагороди 57 ОМПБр' },
+        user: { id: randomBytes(16), name: 'pwa-user', displayName: 'PWA User' },
+        pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
+        authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required' },
+        timeout: 60000
+      }
+    });
+    if (!cred) return false;
+    localStorage.setItem(LOCK_WEBAUTHN_ID_KEY, bufToBase64(cred.rawId));
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+async function verifyBiometric(){
+  var storedId = localStorage.getItem(LOCK_WEBAUTHN_ID_KEY);
+  if (!storedId || !window.PublicKeyCredential) return false;
+  try {
+    var assertion = await navigator.credentials.get({
+      publicKey: {
+        challenge: randomBytes(32),
+        allowCredentials: [{ id: base64ToBuf(storedId), type: 'public-key' }],
+        userVerification: 'required',
+        timeout: 60000
+      }
+    });
+    return !!assertion;
+  } catch (e) {
+    return false;
+  }
+}
+
+// ---------- Сам екран-замок ----------
+function showLockGate(){
+  document.getElementById('lock-gate').classList.add('show');
+  if (getAppLockType() === 'biometric' && localStorage.getItem(LOCK_WEBAUTHN_ID_KEY)) {
+    showLockBiometricView();
+    tryBiometricUnlock();
+  } else {
+    showLockPinView();
+  }
+}
+
+function hideLockGate(){
+  document.getElementById('lock-gate').classList.remove('show');
+  lockUnlockedThisForeground = true;
+}
+
+function showLockPinView(){
+  document.getElementById('lock-pin-view').style.display = 'block';
+  document.getElementById('lock-biometric-view').style.display = 'none';
+  lockCurrentPinEntry = '';
+  renderLockPinDots();
+  buildLockKeypad();
+  document.getElementById('lock-pin-error').classList.remove('show');
+  var bioBtn = document.getElementById('lock-use-biometric-btn');
+  bioBtn.style.display = (getAppLockType() === 'biometric' && localStorage.getItem(LOCK_WEBAUTHN_ID_KEY)) ? 'inline-block' : 'none';
+}
+
+function showLockBiometricView(){
+  document.getElementById('lock-pin-view').style.display = 'none';
+  document.getElementById('lock-biometric-view').style.display = 'block';
+  document.getElementById('lock-bio-error').classList.remove('show');
+}
+
+async function tryBiometricUnlock(){
+  showLockBiometricView();
+  var ok = await verifyBiometric();
+  if (ok) {
+    hideLockGate();
+  } else {
+    document.getElementById('lock-bio-error').classList.add('show');
+  }
+}
+
+function renderLockPinDots(){
+  var dots = document.querySelectorAll('#lock-pin-dots span');
+  dots.forEach(function(dot, i){
+    dot.classList.toggle('filled', i < lockCurrentPinEntry.length);
+  });
+}
+
+function buildLockKeypad(){
+  var keypad = document.getElementById('lock-keypad');
+  if (keypad.childElementCount > 0) return; // будуємо лише один раз
+  var layout = ['1','2','3','4','5','6','7','8','9','','0','⌫'];
+  layout.forEach(function(key){
+    var btn = document.createElement('button');
+    if (key === '') {
+      btn.className = 'lock-key-empty';
+      btn.disabled = true;
+    } else {
+      btn.textContent = key;
+      btn.onclick = function(){ handleLockKeyPress(key); };
+    }
+    keypad.appendChild(btn);
+  });
+}
+
+async function handleLockKeyPress(key){
+  if (key === '⌫') {
+    lockCurrentPinEntry = lockCurrentPinEntry.slice(0, -1);
+    renderLockPinDots();
+    return;
+  }
+  if (lockCurrentPinEntry.length >= 6) return;
+  lockCurrentPinEntry += key;
+  renderLockPinDots();
+
+  if (lockCurrentPinEntry.length >= 4) {
+    var hash = await sha256Hex(lockCurrentPinEntry);
+    var stored = localStorage.getItem(LOCK_PIN_HASH_KEY);
+    if (hash === stored) {
+      hideLockGate();
+      return;
+    }
+    if (lockCurrentPinEntry.length === 6) {
+      document.getElementById('lock-pin-error').classList.add('show');
+      lockCurrentPinEntry = '';
+      renderLockPinDots();
+    }
+  }
+}
+
+// Перевіряємо замок при кожному поверненні застосунку "на передній план"
+// (перемикання вкладок/додатків) — не лише при першому відкритті.
+document.addEventListener('visibilitychange', function(){
+  if (document.visibilityState === 'visible') {
+    if (isAppLockEnabled() && !lockUnlockedThisForeground && document.getElementById('app').style.display !== 'none') {
+      showLockGate();
+    }
+  } else {
+    lockUnlockedThisForeground = false;
+  }
+});
+
 // ---------- Ініціалізація авторизації при відкритті ----------
 (function initAuth(){
   var savedTheme = localStorage.getItem(THEME_STORAGE_KEY) || 'dark';
@@ -896,11 +1240,14 @@ document.getElementById('auth-code-input').addEventListener('keydown', function(
 
   // 2. Збережена сесія на пристрої — показуємо одразу (офлайн-стійкість),
   // але тихо звіряємось із сервером у фоні, щоб дата оновлення даних і
-  // решта інформації не "застигали" з моменту першого входу.
+  // решта інформації не "застигали" з моменту першого входу. Якщо на
+  // пристрої увімкнено локальний замок — спершу показуємо його поверх
+  // застосунку, і тільки після розблокування дозволяємо гортати екрани.
   var saved = getSavedAuth();
   if (saved && saved.user) {
     showApp(saved.user, saved.dataUpdatedAt);
     refreshAuthInBackground(saved.code);
+    if (isAppLockEnabled()) showLockGate();
     return;
   }
 
@@ -935,6 +1282,7 @@ function navigate(screen){
   if (screen === 'reference') openReference();
   if (screen === 'stats') openStats();
   if (screen === 'admin') openAdminStats();
+  if (screen === 'more') refreshAppLockSettingsUI();
   if (screen === 'docs' || screen === 'howto') logPwaView(screen);
   document.querySelectorAll('nav.bottombar button').forEach(btn => {
     var target = btn.getAttribute('data-screen');
