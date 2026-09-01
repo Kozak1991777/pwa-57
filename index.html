@@ -403,18 +403,38 @@ nav.bottombar button.active .indicator{
   padding:24px;
 }
 #lock-gate.show{display:flex;}
-.lock-pin-dots{display:flex;justify-content:center;gap:14px;margin:20px 0 24px;}
+.lock-pin-dots{display:flex;justify-content:center;gap:18px;margin:32px 0 40px;}
 .lock-pin-dots span{
   width:14px;height:14px;border-radius:50%;border:1.5px solid var(--border);
   background:transparent;transition:background .15s,border-color .15s;
 }
 .lock-pin-dots span.filled{background:var(--zoloto);border-color:var(--zoloto);}
-.lock-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:100%;max-width:260px;margin:0 auto;}
+.lock-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;width:100%;max-width:300px;margin:0 auto;}
 .lock-keypad button{
-  height:58px;border-radius:50%;background:var(--surface-2);border:1px solid var(--border);
-  color:var(--text-primary);font-size:20px;font-weight:700;
+  aspect-ratio:1/1;width:100%;border-radius:50%;background:var(--surface-2);border:1px solid var(--border);
+  color:var(--text-primary);font-size:26px;font-weight:600;
 }
-.lock-keypad button.lock-key-empty{background:transparent;border:none;}
+.lock-keypad button.lock-key-empty{background:transparent;border:none;visibility:hidden;}
+.lock-keypad button.lock-key-backspace{background:transparent;border:none;font-size:20px;}
+.lock-keypad button.lock-key-backspace.lock-key-empty{visibility:hidden;}
+
+/* Власне спливаюче вікно замість системного confirm() — без назви домену */
+#custom-confirm-overlay{
+  position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.55);
+  display:none;align-items:center;justify-content:center;padding:24px;
+}
+#custom-confirm-overlay.show{display:flex;}
+.custom-confirm-box{
+  background:var(--surface-1);border-radius:14px;padding:24px 20px;max-width:320px;width:100%;
+  text-align:center;
+}
+.custom-confirm-box p{font-size:14px;color:var(--text-primary);line-height:1.5;margin:0 0 20px;}
+.custom-confirm-actions{display:flex;gap:12px;}
+.custom-confirm-actions button{
+  flex:1;height:44px;border-radius:8px;font-size:14px;font-weight:700;border:1px solid var(--border);
+  background:var(--surface-2);color:var(--text-primary);
+}
+.custom-confirm-actions button.confirm-yes{background:var(--zoloto);color:var(--zoloto-on);border-color:var(--zoloto);}
 
 /* offline banner */
 #offline-banner{
@@ -454,6 +474,17 @@ nav.bottombar button.active .indicator{
     <div class="lock-pin-dots" id="lock-pin-dots"></div>
     <p class="auth-error" id="lock-pin-error">Невірний PIN. Спробуйте ще раз.</p>
     <div class="lock-keypad" id="lock-keypad"></div>
+  </div>
+</div>
+
+<!-- Власне спливаюче вікно підтвердження (замість системного confirm()) -->
+<div id="custom-confirm-overlay">
+  <div class="custom-confirm-box">
+    <p id="custom-confirm-message"></p>
+    <div class="custom-confirm-actions">
+      <button onclick="closeCustomConfirm(false)">Скасувати</button>
+      <button class="confirm-yes" onclick="closeCustomConfirm(true)">Так</button>
+    </div>
   </div>
 </div>
 
@@ -976,13 +1007,30 @@ function refreshAppLockSettingsUI(){
   }
 }
 
+// ---------- Власне спливаюче вікно підтвердження (без назви домену) ----------
+var customConfirmCallback = null;
+
+function showCustomConfirm(message, onConfirmed){
+  document.getElementById('custom-confirm-message').textContent = message;
+  customConfirmCallback = onConfirmed;
+  document.getElementById('custom-confirm-overlay').classList.add('show');
+}
+
+function closeCustomConfirm(confirmed){
+  document.getElementById('custom-confirm-overlay').classList.remove('show');
+  var cb = customConfirmCallback;
+  customConfirmCallback = null;
+  if (confirmed && cb) cb();
+}
+
 function toggleAppLockEnable(){
   if (isAppLockEnabled()) {
-    if (!confirm('Вимкнути захист входу на цьому пристрої?')) return;
-    localStorage.removeItem(LOCK_ENABLED_KEY);
-    localStorage.removeItem(LOCK_PIN_HASH_KEY);
-    localStorage.removeItem(LOCK_PIN_LENGTH_KEY);
-    refreshAppLockSettingsUI();
+    showCustomConfirm('Вимкнути захист входу на цьому пристрої?', function(){
+      localStorage.removeItem(LOCK_ENABLED_KEY);
+      localStorage.removeItem(LOCK_PIN_HASH_KEY);
+      localStorage.removeItem(LOCK_PIN_LENGTH_KEY);
+      refreshAppLockSettingsUI();
+    });
     return;
   }
   // Ще не увімкнено — показуємо форму встановлення PIN
@@ -1023,6 +1071,7 @@ function showLockGate(){
   lockCurrentPinEntry = '';
   renderLockPinDots();
   buildLockKeypad();
+  updateLockBackspaceVisibility();
   document.getElementById('lock-pin-error').classList.remove('show');
 }
 
@@ -1048,13 +1097,19 @@ function renderLockPinDots(){
 
 function buildLockKeypad(){
   var keypad = document.getElementById('lock-keypad');
-  if (keypad.childElementCount > 0) return; // будуємо лише один раз
-  var layout = ['1','2','3','4','5','6','7','8','9','','0','⌫'];
+  if (keypad.childElementCount > 0) { updateLockBackspaceVisibility(); return; } // будуємо лише один раз
+
+  var layout = ['1','2','3','4','5','6','7','8','9','','0','backspace'];
   layout.forEach(function(key){
     var btn = document.createElement('button');
     if (key === '') {
       btn.className = 'lock-key-empty';
       btn.disabled = true;
+    } else if (key === 'backspace') {
+      btn.id = 'lock-backspace-btn';
+      btn.className = 'lock-key-backspace lock-key-empty';
+      btn.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 4H8l-7 8 7 8h13a2 2 0 002-2V6a2 2 0 00-2-2z"/><path d="M18 9l-6 6M12 9l6 6"/></svg>';
+      btn.onclick = function(){ handleLockKeyPress('⌫'); };
     } else {
       btn.textContent = key;
       btn.onclick = function(){ handleLockKeyPress(key); };
@@ -1063,17 +1118,26 @@ function buildLockKeypad(){
   });
 }
 
+function updateLockBackspaceVisibility(){
+  var btn = document.getElementById('lock-backspace-btn');
+  if (!btn) return;
+  btn.classList.toggle('lock-key-empty', lockCurrentPinEntry.length === 0);
+  btn.disabled = lockCurrentPinEntry.length === 0;
+}
+
 async function handleLockKeyPress(key){
   var neededLength = getLockPinLength();
 
   if (key === '⌫') {
     lockCurrentPinEntry = lockCurrentPinEntry.slice(0, -1);
     renderLockPinDots();
+    updateLockBackspaceVisibility();
     return;
   }
   if (lockCurrentPinEntry.length >= neededLength) return;
   lockCurrentPinEntry += key;
   renderLockPinDots();
+  updateLockBackspaceVisibility();
 
   if (lockCurrentPinEntry.length === neededLength) {
     var hash = await sha256Hex(lockCurrentPinEntry);
@@ -1084,6 +1148,7 @@ async function handleLockKeyPress(key){
       document.getElementById('lock-pin-error').classList.add('show');
       lockCurrentPinEntry = '';
       renderLockPinDots();
+      updateLockBackspaceVisibility();
     }
   }
 }
