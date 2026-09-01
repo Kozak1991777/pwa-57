@@ -901,11 +901,6 @@ function showApp(user, dataUpdatedAt){
   else if (name.length > 16) nameEl.classList.add('name-md');
 
   document.getElementById('user-unit').textContent = user.unit || 'Підрозділ не визначено';
-  var unitBadgeImg = document.querySelector('.welcome-card .unit-badge img');
-  if (unitBadgeImg) {
-    unitBadgeImg.src = user.unitIconUrl ? user.unitIconUrl : 'icons/icon-192.png';
-    unitBadgeImg.onerror = function(){ this.onerror = null; this.src = 'icons/icon-192.png'; };
-  }
   document.getElementById('last-updated').textContent = "Дані оновлено: " + (dataUpdatedAt || 'невідомо');
   document.getElementById('auth-gate').classList.add('hidden');
   document.getElementById('app').style.display = 'flex';
