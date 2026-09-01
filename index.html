@@ -394,6 +394,16 @@ nav.bottombar button.active .indicator{
 .auth-spinner.show{display:block;}
 @keyframes spin{to{transform:rotate(360deg);}}
 
+/* FORCED PIN SETUP (одразу після першого входу за кодом) — той самий
+   вигляд, що auth-gate; показується ЗАМІСТЬ застосунку, не поверх нього */
+#forced-pin-gate{
+  position:fixed;inset:0;z-index:150;
+  background:var(--bg);
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  padding:24px;
+}
+#forced-pin-gate.show{display:flex;}
+
 /* LOCK GATE (PIN / біометрія) — той самий вигляд, що auth-gate, вищий z-index,
    бо може накриватись поверх уже видимого #app */
 #lock-gate{
@@ -474,6 +484,19 @@ nav.bottombar button.active .indicator{
     <div class="lock-pin-dots" id="lock-pin-dots"></div>
     <p class="auth-error" id="lock-pin-error">Невірний PIN. Спробуйте ще раз.</p>
     <div class="lock-keypad" id="lock-keypad"></div>
+  </div>
+</div>
+
+<!-- Примусове встановлення PIN одразу після першого входу за персональним кодом -->
+<div id="forced-pin-gate">
+  <div class="auth-box">
+    <div class="emblem"><img src="icons/icon-192.png" alt="Емблема"></div>
+    <h2>Захист входу</h2>
+    <p class="sub">Придумайте PIN-код, яким надалі будете розблоковувати застосунок на цьому пристрої</p>
+    <input type="password" id="forced-pin-1" inputmode="numeric" maxlength="6" placeholder="Новий PIN (4-6 цифр)">
+    <input type="password" id="forced-pin-2" inputmode="numeric" maxlength="6" placeholder="Повторіть PIN">
+    <p class="auth-error" id="forced-pin-error">PIN-коди не співпадають.</p>
+    <button class="btn-primary" onclick="saveForcedPinSetup()">Зберегти і продовжити</button>
   </div>
 </div>
 
@@ -939,7 +962,12 @@ function checkAccessCode(code){
       setAuthLoading(false);
       if (data && data.ok) {
         saveAuth(code, data.user, data.dataUpdatedAt);
-        showApp(data.user, data.dataUpdatedAt);
+        document.getElementById('auth-gate').classList.add('hidden');
+        if (!isAppLockEnabled()) {
+          showForcedPinSetup(data.user, data.dataUpdatedAt);
+        } else {
+          showApp(data.user, data.dataUpdatedAt);
+        }
       } else {
         showAuthError();
       }
@@ -948,6 +976,46 @@ function checkAccessCode(code){
       setAuthLoading(false);
       showAuthError('Немає з\'єднання з сервером. Перевірте інтернет і спробуйте ще раз.');
     });
+}
+
+// ---------- Примусове встановлення PIN одразу після першого входу за кодом ----------
+var pendingForcedUser = null;
+var pendingForcedDataUpdatedAt = null;
+
+function showForcedPinSetup(user, dataUpdatedAt){
+  pendingForcedUser = user;
+  pendingForcedDataUpdatedAt = dataUpdatedAt;
+  document.getElementById('forced-pin-1').value = '';
+  document.getElementById('forced-pin-2').value = '';
+  document.getElementById('forced-pin-error').classList.remove('show');
+  document.getElementById('forced-pin-gate').classList.add('show');
+}
+
+async function saveForcedPinSetup(){
+  var pin1 = document.getElementById('forced-pin-1').value.trim();
+  var pin2 = document.getElementById('forced-pin-2').value.trim();
+  var errEl = document.getElementById('forced-pin-error');
+
+  if (!/^\d{4,6}$/.test(pin1)) {
+    errEl.textContent = 'PIN має складатись із 4-6 цифр.';
+    errEl.classList.add('show');
+    return;
+  }
+  if (pin1 !== pin2) {
+    errEl.textContent = 'PIN-коди не співпадають.';
+    errEl.classList.add('show');
+    return;
+  }
+
+  var hash = await sha256Hex(pin1);
+  localStorage.setItem(LOCK_PIN_HASH_KEY, hash);
+  localStorage.setItem(LOCK_PIN_LENGTH_KEY, String(pin1.length));
+  localStorage.setItem(LOCK_ENABLED_KEY, '1');
+
+  document.getElementById('forced-pin-gate').classList.remove('show');
+  showApp(pendingForcedUser, pendingForcedDataUpdatedAt);
+  pendingForcedUser = null;
+  pendingForcedDataUpdatedAt = null;
 }
 
 function submitAuthCode(){
