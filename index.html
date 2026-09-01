@@ -445,6 +445,7 @@ nav.bottombar button.active .indicator{
   background:var(--surface-2);color:var(--text-primary);
 }
 .custom-confirm-actions button.confirm-yes{background:var(--zoloto);color:var(--zoloto-on);border-color:var(--zoloto);}
+.admin-delete-btn{flex-shrink:0;background:transparent;border:1px solid #C0392B;color:#C0392B;border-radius:6px;font-size:11px;font-weight:700;padding:5px 10px;}
 
 /* offline banner */
 #offline-banner{
@@ -459,6 +460,7 @@ nav.bottombar button.active .indicator{
   padding:12px 14px;font-size:12px;color:var(--text-secondary);margin-bottom:14px;line-height:1.5;
 }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
 <div id="offline-banner">Немає з'єднання — показані збережені дані</div>
@@ -801,6 +803,7 @@ nav.bottombar button.active .indicator{
           <button class="theme-btn active" style="width:100%;margin-top:10px;" onclick="saveLockSetup()">Зберегти захист</button>
         </div>
 
+        <button class="theme-btn" style="width:100%;margin-top:8px;display:none;" onclick="showChangePinForm()" id="app-lock-change-btn">Змінити PIN</button>
         <button class="theme-btn active" style="width:100%;margin-top:10px;" onclick="toggleAppLockEnable()" id="app-lock-enable-btn">Увімкнути захист входу</button>
       </div>
 
@@ -1061,16 +1064,26 @@ async function sha256Hex(text){
 function refreshAppLockSettingsUI(){
   var statusEl = document.getElementById('app-lock-status');
   var enableBtn = document.getElementById('app-lock-enable-btn');
+  var changeBtn = document.getElementById('app-lock-change-btn');
   var setupArea = document.getElementById('app-lock-setup-area');
 
   if (isAppLockEnabled()) {
     statusEl.textContent = 'Увімкнено: PIN-код (' + getLockPinLength() + ' цифр)';
     enableBtn.textContent = 'Вимкнути захист входу';
+    changeBtn.style.display = 'block';
     setupArea.style.display = 'none';
   } else {
     statusEl.textContent = 'Вимкнено';
     enableBtn.textContent = 'Увімкнути захист входу';
+    changeBtn.style.display = 'none';
   }
+}
+
+function showChangePinForm(){
+  document.getElementById('app-lock-setup-area').style.display = 'block';
+  document.getElementById('lock-setup-error').style.display = 'none';
+  document.getElementById('lock-setup-pin-1').value = '';
+  document.getElementById('lock-setup-pin-2').value = '';
 }
 
 // ---------- Власне спливаюче вікно підтвердження (без назви домену) ----------
@@ -1438,7 +1451,10 @@ function openAdminStats(){
       } else {
         for (var a = 0; a < data.active.length; a++) {
           var u = data.active[a];
-          html += '<p class="body-note" style="margin-top:' + (a === 0 ? '8px' : '10px') + ';"><b>' + escapeHtml(u.name) + '</b> (' + escapeHtml(u.unit) + ') — ' + escapeHtml(u.lastSeenLabel) + '</p>';
+          html += '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:' + (a === 0 ? '8px' : '10px') + ';">' +
+            '<p class="body-note" style="margin:0;"><b>' + escapeHtml(u.name) + '</b> (' + escapeHtml(u.unit) + ') — ' + escapeHtml(u.lastSeenLabel) + '</p>' +
+            '<button class="admin-delete-btn" onclick="confirmAdminDeleteUser(\'' + escapeHtml(u.id) + '\', \'' + escapeHtml(u.name).replace(/'/g, "\\'") + '\')">Видалити</button>' +
+            '</div>';
         }
       }
       html += '</div>';
@@ -1450,7 +1466,10 @@ function openAdminStats(){
       } else {
         for (var n = 0; n < data.inactive.length; n++) {
           var iu = data.inactive[n];
-          html += '<p class="body-note" style="margin-top:' + (n === 0 ? '8px' : '10px') + ';">' + escapeHtml(iu.name) + ' (' + escapeHtml(iu.unit) + ') — ' + escapeHtml(iu.statusLabel) + '</p>';
+          html += '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:' + (n === 0 ? '8px' : '10px') + ';">' +
+            '<p class="body-note" style="margin:0;">' + escapeHtml(iu.name) + ' (' + escapeHtml(iu.unit) + ') — ' + escapeHtml(iu.statusLabel) + '</p>' +
+            '<button class="admin-delete-btn" onclick="confirmAdminDeleteUser(\'' + escapeHtml(iu.id) + '\', \'' + escapeHtml(iu.name).replace(/'/g, "\\'") + '\')">Видалити</button>' +
+            '</div>';
         }
       }
       html += '</div>';
@@ -1514,9 +1533,13 @@ function submitAdminAddUser(){
       resultBox.innerHTML =
         '<p class="body-note">Користувача додано. Персональне посилання:</p>' +
         '<p class="body-note" id="admin-new-link" style="word-break:break-all;margin-top:4px;font-weight:bold;">' + escapeHtml(data.link) + '</p>' +
-        '<button class="theme-btn" style="width:100%;margin-top:8px;" onclick="copyAdminLink()">Скопіювати посилання</button>';
+        '<button class="theme-btn" style="width:100%;margin-top:8px;" onclick="copyAdminLink()">Скопіювати посилання</button>' +
+        '<div id="admin-new-qr" style="display:flex;justify-content:center;margin-top:14px;background:#fff;border-radius:8px;padding:12px;"></div>';
       nameInput.value = '';
       unitInput.value = '';
+      if (window.QRCode) {
+        new QRCode(document.getElementById('admin-new-qr'), { text: data.link, width: 176, height: 176 });
+      }
       openAdminStats();
     })
     .catch(function(){
@@ -1531,6 +1554,24 @@ function copyAdminLink(){
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(text);
   }
+}
+
+function confirmAdminDeleteUser(id, name){
+  showCustomConfirm('Видалити користувача "' + name + '"? Доступ до застосунку буде втрачено негайно.', function(){
+    var url = API_BASE_URL + '?action=adminDeleteUser&code=' + encodeURIComponent(getAuthCode()) + '&targetId=' + encodeURIComponent(id);
+    fetch(url)
+      .then(function(res){ return res.json(); })
+      .then(function(data){
+        if (data && data.ok) {
+          openAdminStats();
+        } else {
+          showCustomConfirm('Не вдалося видалити користувача. Спробуйте ще раз.', function(){});
+        }
+      })
+      .catch(function(){
+        showCustomConfirm('Немає з\'єднання з сервером.', function(){});
+      });
+  });
 }
 
 // Технічний пінг для статичних екранів (Документи/Як нагородити), які самі
