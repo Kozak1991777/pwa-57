@@ -1,1751 +1,2710 @@
-// ==============================================================================
-// НАЛАШТУВАННЯ — ТІ САМІ ID, ЩО Й У ТЕЛЕГРАМ-БОТІ
-// ==============================================================================
-var CONFIG = {
-  MAIN_SETTINGS_ID: "1B2lx26DFKrYzyAUl5tgWnQCgfqy-0F0pzCpBAyZghEE",
-  DATABASE_ID: "1B2lx26DFKrYzyAUl5tgWnQCgfqy-0F0pzCpBAyZghEE",
-  LOG_SHEET_ID: "1ZK3P_oAX0tK7ZxGreOI1YFaQUhJqM8NEWzBs61BBCBQ",
-  MAIN_LOGO_ID: "1nXMZODkZYQt2_kGw_OcTMC25quXUJQw6",
-  PWA_CODES_ID: "1zYZphPcJaOuqMTwyksQKXrnbjTO_xxp9Zp8VfhaMflk"
-};
-
-var adminId = 444372148;
-
-var PWA_BASE_URL = "https://kozak1991777.github.io/pwa-57/";
-
-var PDF_BG = "#F2EFE4";
-var PDF_CARD_BG = "#E9E4D4";
-var PDF_LINE = "#CFC8A6";
-var PDF_STEP = "#6A653A";
-var PDF_TEXT = "#1F1F1F";
-var PDF_TEXT_MUTED = "#6B6858";
-var PDF_GOLD = "#F39200";
-
-function pdfShieldLogo(size, faded) {
-  var h = Math.round(size * 1.15);
-  var strokeWidth = faded ? "6" : "8";
-  var opacity = faded ? ' opacity="0.65"' : '';
-  return '<svg viewBox="0 0 400 460" xmlns="http://www.w3.org/2000/svg" style="width:' + size + 'px; height:' + h + 'px; display:block;">' +
-    '<g fill="none" stroke="' + PDF_STEP + '" stroke-width="' + strokeWidth + '" stroke-linejoin="round" stroke-linecap="round"' + opacity + '>' +
-    '<path d="M40 35H360V205C360 315 295 385 200 425C105 385 40 315 40 205Z"/>' +
-    '</g>' +
-    '<g fill="' + PDF_STEP + '"' + opacity + ' transform="translate(200 204.65) scale(1.375) translate(-200 -204.65)">' +
-    '<path d="M179.6 274.6h-61.2V119.1c23.5 10.6 35 34.2 35 71.2 0 12.9-1.3 27.1-4.4 49.9h33l-1.1-42.8c-.4-15.5-2.9-48.6-2.9-53.2 0-19.7 7.3-37.5 21.5-52.8 14.2 15.3 21.5 33 21.5 52.8 0 4.7-2.4 37.7-2.9 53.2l-1.1 42.8h33c-3.1-22.8-4.4-37-4.4-49.9 0-37 11.5-60.5 35-71.2v155.5h-61.2c-4.2 12.2-11.1 24.6-20 35.3-8.9-10.7-15.8-23.1-20-35.3Z"/>' +
-    '</g>' +
-    '</svg>';
-}
-
-// ==============================================================================
-// ГОЛОВНИЙ ВХІД API (doGet)
-// ==============================================================================
-function doGet(e) {
-  var action = e.parameter.action || "";
-  var result;
-
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#1A1B17">
+<script>
+(function(){
   try {
-    if (action === "checkAccess") {
-      result = checkAccess(e.parameter.code);
-    } else if (action === "search") {
-      result = handleSearch(e.parameter.code, e.parameter.query);
-    } else if (action === "awardCard") {
-      result = handleAwardCard(e.parameter.code, e.parameter.name, e.parameter.dob);
-    } else if (action === "reference") {
-      result = handleReference(e.parameter.code);
-    } else if (action === "stats") {
-      result = handleStats(e.parameter.code, e.parameter.year);
-    } else if (action === "statsUnitDetail") {
-      result = handleStatsUnitDetail(e.parameter.code, e.parameter.unit, e.parameter.year);
-    } else if (action === "statsUnitPdf") {
-      result = handleStatsUnitPdf(e.parameter.code, e.parameter.unit, e.parameter.year);
-    } else if (action === "statsUnitXlsx") {
-      result = handleStatsUnitXlsx(e.parameter.code, e.parameter.unit, e.parameter.year);
-    } else if (action === "statsGeneralPdf") {
-      result = handleStatsGeneralPdf(e.parameter.code, e.parameter.year);
-    } else if (action === "statsGeneralXlsx") {
-      result = handleStatsGeneralXlsx(e.parameter.code, e.parameter.year);
-    } else if (action === "digest") {
-      result = handleDigest(e.parameter.code);
-    } else if (action === "adminStats") {
-      result = handleAdminStats(e.parameter.code);
-    } else if (action === "adminAddUser") {
-      result = handleAdminAddUser(e.parameter.code, e.parameter.name, e.parameter.unit);
-    } else if (action === "adminDeleteUser") {
-      result = handleAdminDeleteUser(e.parameter.code, e.parameter.targetId);
-    } else if (action === "adminGetUserLink") {
-      result = handleAdminGetUserLink(e.parameter.code, e.parameter.targetId);
-    } else if (action === "logView") {
-      result = handleLogView(e.parameter.code, e.parameter.section);
-    } else {
-      result = { ok: false, error: "unknown_action" };
-    }
-  } catch (err) {
-    result = { ok: false, error: err.toString() };
-  }
-
-  return ContentService
-    .createTextOutput(JSON.stringify(result))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-
-// ==============================================================================
-// СПІЛЬНА ПЕРЕВІРКА КОДУ ДОСТУПУ (використовується в усіх ендпоінтах з даними)
-// ==============================================================================
-function getPwaCodesSheet() {
-  var ss = SpreadsheetApp.openById(CONFIG.PWA_CODES_ID);
-  var sheet = ss.getSheetByName("PWA_Codes");
-  if (!sheet) {
-    sheet = ss.insertSheet("PWA_Codes");
-    sheet.appendRow(["ID (Telegram)", "Код доступу PWA"]);
-    sheet.getRange(1, 1, 1, 2).setFontWeight("bold").setBackground("#f3f3f3");
-  }
-  return sheet;
-}
-
-function findUserByCode(code) {
-  if (!code || code.toString().trim() === "") return null;
-  code = code.toString().trim().toUpperCase();
-
-  var codesSheet = getPwaCodesSheet();
-  var codesData = codesSheet.getDataRange().getValues();
-
-  var telegramId = null;
-  for (var c = 1; c < codesData.length; c++) {
-    var rowCode = codesData[c][1] ? codesData[c][1].toString().trim().toUpperCase() : "";
-    if (rowCode && rowCode === code) {
-      telegramId = codesData[c][0];
-      break;
-    }
-  }
-  if (!telegramId) return null;
-
-  var sheet = SpreadsheetApp.openById(CONFIG.MAIN_SETTINGS_ID).getSheetByName("Allowed_Users");
-  var data = sheet.getDataRange().getValues();
-
-  for (var i = 1; i < data.length; i++) {
-    if (String(data[i][0]) === String(telegramId)) {
-      return {
-        rowIndex: i + 1,
-        id: data[i][0],
-        name: data[i][2] || "",
-        unit: data[i][3] || "",
-        isAdmin: String(data[i][0]) === String(adminId)
-      };
-    }
-  }
-  return null;
-}
-
-// ==============================================================================
-// ВІДСТЕЖЕННЯ ФАКТИЧНОГО ОНОВЛЕННЯ ДАНИХ (аркуш "New")
-// ==============================================================================
-function getDataFreshnessTimestamp() {
-  var data = SpreadsheetApp.openById(CONFIG.DATABASE_ID).getSheetByName("New").getDataRange().getValues();
-  var digest = Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, JSON.stringify(data)));
-
-  var freshSS = SpreadsheetApp.openById(CONFIG.PWA_CODES_ID);
-  var sheet = freshSS.getSheetByName("Data_Freshness");
-  if (!sheet) {
-    sheet = freshSS.insertSheet("Data_Freshness");
-    sheet.appendRow(["Digest", "Timestamp"]);
-    var now = new Date();
-    sheet.appendRow([digest, now]);
-    return now;
-  }
-
-  var storedDigest = sheet.getRange(2, 1).getValue();
-  var storedTimestamp = sheet.getRange(2, 2).getValue();
-
-  if (storedDigest !== digest) {
-    var updatedNow = new Date();
-    sheet.getRange(2, 1, 1, 2).setValues([[digest, updatedNow]]);
-    return updatedNow;
-  }
-
-  return (storedTimestamp instanceof Date) ? storedTimestamp : new Date();
-}
-
-// ==============================================================================
-// ЛОГУВАННЯ АКТИВНОСТІ PWA
-// ==============================================================================
-function logAction(telegramId, sectionLabel, detail) {
-  try {
-    var sheet = SpreadsheetApp.openById(CONFIG.LOG_SHEET_ID).getSheets()[0];
-    var text = "PWA: " + sectionLabel + (detail ? ": " + detail : "");
-    sheet.appendRow([new Date(), telegramId, text]);
-  } catch (e) {}
-}
-
-function handleLogView(code, section) {
-  var user = findUserByCode(code);
-  if (!user) return { ok: false };
-
-  var labels = { "docs": "Документи", "howto": "Як нагородити", "digest": "Дайджест" };
-  var label = labels[section];
-  if (!label) return { ok: false };
-
-  logAction(user.id, label);
-  return { ok: true };
-}
-
-// ==============================================================================
-// ТИЖНЕВИЙ ЗВІТ АКТИВНОСТІ PWA
-// ==============================================================================
-function computePwaWeeklyLog() {
-  var data = SpreadsheetApp.openById(CONFIG.LOG_SHEET_ID).getSheets()[0].getDataRange().getValues();
-  var now = new Date();
-  var sevenDaysAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
-
-  var uniqueUsers = {};
-  var totalActions = 0;
-  var sectionUsage = {};
-  var searchQueries = {};
-
-  for (var i = 0; i < data.length; i++) {
-    var rowDate = new Date(data[i][0]);
-    if (isNaN(rowDate.getTime()) || rowDate <= sevenDaysAgo) continue;
-    if (String(data[i][1]) === String(adminId)) continue; // не рахуємо власну активність адміна
-
-    var action = data[i][2] ? data[i][2].toString() : "";
-    if (action.indexOf("PWA: ") !== 0) continue;
-
-    totalActions++;
-    uniqueUsers[data[i][1]] = true;
-
-    var rest = action.substring(5);
-    var colonIdx = rest.indexOf(": ");
-    var section = colonIdx === -1 ? rest : rest.substring(0, colonIdx);
-    var detail = colonIdx === -1 ? "" : rest.substring(colonIdx + 2);
-
-    sectionUsage[section] = (sectionUsage[section] || 0) + 1;
-
-    if (section === "Пошук" && detail) {
-      searchQueries[detail] = (searchQueries[detail] || 0) + 1;
-    }
-  }
-
-  var sections = Object.keys(sectionUsage)
-    .map(function (k) { return { name: k, count: sectionUsage[k] }; })
-    .sort(function (a, b) { return b.count - a.count; });
-
-  var topQueries = Object.keys(searchQueries)
-    .map(function (k) { return { query: k, count: searchQueries[k] }; })
-    .sort(function (a, b) { return b.count - a.count; })
-    .slice(0, 10);
-
-  return {
-    uniqueUsers: Object.keys(uniqueUsers).length,
-    totalActions: totalActions,
-    sections: sections,
-    topQueries: topQueries
-  };
-}
-
-// ==============================================================================
-// АДМІН-СТАТИСТИКА
-// ==============================================================================
-function handleAdminStats(code) {
-  var user = findUserByCode(code);
-  if (!user) return { ok: false, error: "unauthorized" };
-  if (!user.isAdmin) return { ok: false, error: "forbidden" };
-
-  var data = SpreadsheetApp.openById(CONFIG.MAIN_SETTINGS_ID).getSheetByName("Allowed_Users").getDataRange().getValues();
-  var now = new Date();
-  var total = 0;
-  var active = [];
-  var inactive = [];
-
-  for (var i = 1; i < data.length; i++) {
-    if (!data[i][0]) continue;
-    total++;
-
-    var id = data[i][0];
-    if (String(id) === String(adminId)) continue; // не показуємо самого адміна в списках
-
-    var name = data[i][2] ? data[i][2].toString().trim() : "Без імені";
-    var unit = data[i][3] ? data[i][3].toString().trim() : "—";
-    var lastSeenRaw = data[i][4];
-    var lastSeen = lastSeenRaw ? new Date(lastSeenRaw) : null;
-
-    if (lastSeen && !isNaN(lastSeen.getTime())) {
-      var daysSince = Math.floor((now - lastSeen) / (1000 * 60 * 60 * 24));
-      if (daysSince <= 7) {
-        active.push({
-          id: id,
-          name: name,
-          unit: unit,
-          lastSeenLabel: Utilities.formatDate(lastSeen, Session.getScriptTimeZone(), "dd.MM.yyyy HH:mm"),
-          _sortDate: lastSeen.getTime()
-        });
-      } else {
-        inactive.push({
-          id: id,
-          name: name,
-          unit: unit,
-          statusLabel: daysSince + " " + pluralizeDays(daysSince) + " тому",
-          _sortDate: lastSeen.getTime()
-        });
-      }
-    } else {
-      inactive.push({ id: id, name: name, unit: unit, statusLabel: "жодного разу", _sortDate: -1 });
-    }
-  }
-
-  active.sort(function (a, b) { return b._sortDate - a._sortDate; });
-  inactive.sort(function (a, b) { return a._sortDate - b._sortDate; });
-
-  active.forEach(function (u) { delete u._sortDate; });
-  inactive.forEach(function (u) { delete u._sortDate; });
-
-  return { ok: true, total: total, active: active, inactive: inactive, weeklyLog: computePwaWeeklyLog() };
-}
-
-// ==============================================================================
-// АДМІН-ВИДАЛЕННЯ КОРИСТУВАЧА (аналог /kick з бота) — прибирає рядок з
-// Allowed_Users І відповідний код доступу з PWA_Codes, тож доступ
-// втрачається негайно (findUserByCode більше нічого не знайде).
-// ==============================================================================
-function handleAdminDeleteUser(code, targetId) {
-  var user = findUserByCode(code);
-  if (!user) return { ok: false, error: "unauthorized" };
-  if (!user.isAdmin) return { ok: false, error: "forbidden" };
-  if (!targetId) return { ok: false, error: "no_target" };
-
-  var usersSheet = SpreadsheetApp.openById(CONFIG.MAIN_SETTINGS_ID).getSheetByName("Allowed_Users");
-  var usersData = usersSheet.getDataRange().getValues();
-  var deletedFromUsers = false;
-  for (var i = usersData.length - 1; i >= 1; i--) {
-    if (String(usersData[i][0]) === String(targetId)) {
-      usersSheet.deleteRow(i + 1);
-      deletedFromUsers = true;
-      break;
-    }
-  }
-
-  var codesSheet = getPwaCodesSheet();
-  var codesData = codesSheet.getDataRange().getValues();
-  for (var c = codesData.length - 1; c >= 1; c--) {
-    if (String(codesData[c][0]) === String(targetId)) {
-      codesSheet.deleteRow(c + 1);
-      break;
-    }
-  }
-
-  if (!deletedFromUsers) return { ok: false, error: "not_found" };
-  return { ok: true };
-}
-
-// ==============================================================================
-// АДМІН — ОТРИМАННЯ ІСНУЮЧОГО ПЕРСОНАЛЬНОГО ПОСИЛАННЯ (для показу QR-коду
-// вже доданому користувачу, без видалення й повторного додавання).
-// ==============================================================================
-function handleAdminGetUserLink(code, targetId) {
-  var user = findUserByCode(code);
-  if (!user) return { ok: false, error: "unauthorized" };
-  if (!user.isAdmin) return { ok: false, error: "forbidden" };
-  if (!targetId) return { ok: false, error: "no_target" };
-
-  var codesSheet = getPwaCodesSheet();
-  var codesData = codesSheet.getDataRange().getValues();
-  for (var c = 1; c < codesData.length; c++) {
-    if (String(codesData[c][0]) === String(targetId)) {
-      var existingCode = codesData[c][1] ? codesData[c][1].toString().trim() : "";
-      if (!existingCode) break;
-      return { ok: true, link: PWA_BASE_URL + "?code=" + existingCode };
-    }
-  }
-  return { ok: false, error: "not_found" };
-}
-
-function pluralizeDays(n) {
-  var n100 = n % 100;
-  var n10 = n % 10;
-  if (n100 >= 11 && n100 <= 14) return "днів";
-  if (n10 === 1) return "день";
-  if (n10 >= 2 && n10 <= 4) return "дні";
-  return "днів";
-}
-
-// ==============================================================================
-// АДМІН-ДОДАВАННЯ КОРИСТУВАЧА ПРЯМО З PWA
-// ==============================================================================
-function handleAdminAddUser(code, fullName, unit) {
-  var user = findUserByCode(code);
-  if (!user) return { ok: false, error: "unauthorized" };
-  if (!user.isAdmin) return { ok: false, error: "forbidden" };
-
-  if (!fullName || !fullName.toString().trim()) {
-    return { ok: false, error: "no_name" };
-  }
-  fullName = fullName.toString().trim();
-  unit = (unit || "").toString().trim();
-
-  var usersSheet = SpreadsheetApp.openById(CONFIG.MAIN_SETTINGS_ID).getSheetByName("Allowed_Users");
-
-  var newId = "M" + Date.now();
-  usersSheet.appendRow([newId, "ТАК", fullName, unit, "", ""]);
-
-  var codesSheet = getPwaCodesSheet();
-  var codesData = codesSheet.getDataRange().getValues();
-  var existingCodes = {};
-  for (var c = 1; c < codesData.length; c++) {
-    var v = codesData[c][1] ? codesData[c][1].toString().trim().toUpperCase() : "";
-    if (v) existingCodes[v] = true;
-  }
-
-  var newCode;
-  do {
-    newCode = generateRandomCode(8);
-  } while (existingCodes[newCode]);
-
-  codesSheet.appendRow([newId, newCode]);
-
-  return {
-    ok: true,
-    id: newId,
-    code: newCode,
-    link: PWA_BASE_URL + "?code=" + newCode
-  };
-}
-
-// ==============================================================================
-// ЩОМІСЯЧНИЙ ДАЙДЖЕСТ
-// ==============================================================================
-function computeMonthlyDigest() {
-  var data = SpreadsheetApp.openById(CONFIG.DATABASE_ID).getSheetByName("New").getDataRange().getValues();
-  var unitMap = getUnitsMap();
-
-  var today = new Date();
-  var targetDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-  var targetMonth = targetDate.getMonth();
-  var targetYear = targetDate.getFullYear();
-
-  var total = 0;
-  var awards = {};
-  var units = {};
-
-  for (var i = 1; i < data.length; i++) {
-    var rowDate = new Date(data[i][8]);
-    if (isNaN(rowDate.getTime())) continue;
-    if (rowDate.getMonth() !== targetMonth || rowDate.getFullYear() !== targetYear) continue;
-
-    total++;
-
-    var awardName = data[i][5] ? data[i][5].toString().trim() : "Не вказано";
-    awards[awardName] = (awards[awardName] || 0) + 1;
-
-    var rawUnit = data[i][4] ? data[i][4].toString().trim() : "";
-    var unitName = mapUnitName(unitMap, rawUnit) || "Не вказано";
-    units[unitName] = (units[unitName] || 0) + 1;
-  }
-
-  function topEntries(map) {
-    var maxCount = 0;
-    var list = [];
-    for (var key in map) {
-      if (map[key] > maxCount) {
-        maxCount = map[key];
-        list = [key];
-      } else if (map[key] === maxCount && maxCount > 0) {
-        list.push(key);
-      }
-    }
-    return list.length > 0 ? list.join(", ") : "—";
-  }
-
-  var monthNames = ["січень", "лютий", "березень", "квітень", "травень", "червень",
-    "липень", "серпень", "вересень", "жовтень", "листопад", "грудень"];
-  var monthLabel = monthNames[targetMonth] + " " + targetYear;
-  var monthKey = targetYear + "-" + (targetMonth + 1);
-
-  return {
-    monthKey: monthKey,
-    monthLabel: monthLabel,
-    total: total,
-    topAward: topEntries(awards),
-    topUnit: topEntries(units)
-  };
-}
-
-function handleDigest(code) {
-  var user = findUserByCode(code);
-  if (!user) return { ok: false, error: "unauthorized" };
-
-  var d = computeMonthlyDigest();
-  return {
-    ok: true,
-    monthKey: d.monthKey,
-    monthLabel: d.monthLabel,
-    total: d.total,
-    topAward: d.topAward,
-    topUnit: d.topUnit
-  };
-}
-
-function checkAccess(code) {
-  var user = findUserByCode(code);
-  if (!user) return { ok: false, error: "invalid_code" };
-
-  var sheet = SpreadsheetApp.openById(CONFIG.MAIN_SETTINGS_ID).getSheetByName("Allowed_Users");
-  sheet.getRange(user.rowIndex, 5).setValue(new Date());
-
-  var dataUpdatedAt = "";
-  try {
-    var freshness = getDataFreshnessTimestamp();
-    dataUpdatedAt = Utilities.formatDate(freshness, Session.getScriptTimeZone(), "dd.MM.yyyy HH:mm");
-  } catch (e) {
-    dataUpdatedAt = "ДІАГНОСТИКА (тимчасово): " + e.toString();
-  }
-
-  return {
-    ok: true,
-    user: { name: user.name, unit: user.unit, isAdmin: user.isAdmin },
-    dataUpdatedAt: dataUpdatedAt
-  };
-}
-
-// ==============================================================================
-// ПОШУК ВІЙСЬКОВОСЛУЖБОВЦЯ ЗА ПРІЗВИЩЕМ
-// ==============================================================================
-function handleSearch(code, query) {
-  var user = findUserByCode(code);
-  if (!user) return { ok: false, error: "unauthorized" };
-
-  if (!query || query.toString().trim().length < 2) {
-    return { ok: false, error: "query_too_short" };
-  }
-  var q = query.toString().trim().toLowerCase();
-
-  logAction(user.id, "Пошук", query.toString().trim());
-
-  var data = SpreadsheetApp.openById(CONFIG.DATABASE_ID).getSheetByName("New").getDataRange().getValues();
-
-  var peopleMap = {};
-  for (var i = 1; i < data.length; i++) {
-    var name = data[i][3];
-    if (!name) continue;
-    var nameTrim = name.toString().trim();
-    if (nameTrim.toLowerCase().indexOf(q) === -1) continue;
-
-    var dob = data[i][9] ? data[i][9].toString().trim() : "";
-    var key = dob ? nameTrim + "||" + dob : nameTrim;
-
-    if (!peopleMap[key]) peopleMap[key] = [];
-    peopleMap[key].push(data[i]);
-  }
-
-  var keys = Object.keys(peopleMap);
-  if (keys.length === 0) {
-    return { ok: true, count: 0, results: [] };
-  }
-  if (keys.length > 30) {
-    return { ok: false, error: "too_many_results", count: keys.length };
-  }
-
-  var results = [];
-  for (var k = 0; k < keys.length; k++) {
-    var key = keys[k];
-    var records = peopleMap[key].slice();
-    var keyParts = key.split("||");
-    var fullName = keyParts[0];
-    var dob = keyParts.length > 1 ? keyParts[1] : "";
-
-    records.sort(function (a, b) {
-      var catA = getCategoryPriority(a[2] || "");
-      var catB = getCategoryPriority(b[2] || "");
-      if (catA !== catB) return catA - catB;
-      return getAwardPriority(a[5]) - getAwardPriority(b[5]);
-    });
-
-    var awards = records.map(function (r) {
-      return {
-        category: r[2] || "",
-        name: r[5] || "",
-        order: r[6] || "",
-        year: extractYear(r[1])
-      };
-    });
-
-    results.push({
-      name: fullName,
-      dob: dob,
-      unit: getLatestUnit(records),
-      totalAwards: records.length,
-      awards: awards
-    });
-  }
-
-  results.sort(function (a, b) { return a.name.localeCompare(b.name, 'uk'); });
-
-  return { ok: true, count: results.length, results: results };
-}
-
-function getLatestUnit(records) {
-  var sorted = records.slice().sort(function (a, b) {
-    var dA = extractDateFromOrder(a[6]);
-    var dB = extractDateFromOrder(b[6]);
-    if (dA !== dB) return dB - dA;
-    return (parseInt(extractYear(b[1])) || 0) - (parseInt(extractYear(a[1])) || 0);
-  });
-  return sorted[0][4] ? sorted[0][4].toString().trim() : "";
-}
-
-function extractDateFromOrder(orderStr) {
-  if (!orderStr) return 0;
-  var match = orderStr.toString().match(/(\d{1,2})\.(\d{1,2})\.?\s*(\d{4})/);
-  if (!match) return 0;
-  return parseInt(match[3]) * 10000 + parseInt(match[2]) * 100 + parseInt(match[1]);
-}
-
-function extractYear(val) {
-  if (val instanceof Date) return val.getFullYear().toString();
-  var m = val.toString().match(/\d{4}/);
-  return m ? m[0] : "";
-}
-
-var categoryPriority = {
-  "Державна нагорода": 1,
-  "Нагорода від МОУ": 2,
-  "Нагорода від ГК ЗСУ": 3,
-  "Нагорода від Командувача СВ ЗСУ": 4,
-  "Нагорода від Командувача ОС": 5,
-  "Нагорода від Командувача ОК": 6,
-  "Нагорода від Командувача ОСУВ": 7,
-  "Нагорода від Командувача ОТУ": 8,
-  "Нагорода від УДО України": 9,
-  "Нагорода від 57 ОМПБр": 10
-};
-
-function getCategoryPriority(cat) {
-  return categoryPriority[cat] || 999;
-}
-
-function getAwardPriority(awardName) {
-  var n = awardName ? awardName.toString().trim() : "";
-
-  if (n.indexOf("Герой України") !== -1) return 10;
-  if (n.indexOf("Хрест бойових заслуг") !== -1) return 20;
-  if (n.indexOf("Богдана Хмельницького") !== -1 && n.indexOf("ІІІ") !== -1) return 30;
-  if (n.indexOf("Богдана Хмельницького") !== -1 && n.indexOf("ІІ") !== -1 && n.indexOf("ІІІ") === -1) return 31;
-  if (n.indexOf("Богдана Хмельницького") !== -1 && n.indexOf("І") !== -1 && n.indexOf("ІІ") === -1) return 32;
-  if (n.indexOf("За мужність") !== -1 && n.indexOf("ІІІ") !== -1) return 40;
-  if (n.indexOf("За мужність") !== -1 && n.indexOf("ІІ") !== -1 && n.indexOf("ІІІ") === -1) return 41;
-  if (n.indexOf("За мужність") !== -1 && n.indexOf("І") !== -1 && n.indexOf("ІІ") === -1) return 42;
-  if (n.indexOf("Данила Галицького") !== -1) return 50;
-  if (n.indexOf("Хрест особливих заслуг") !== -1) return 110;
-  if (n.toLowerCase().indexOf("вогнепальна зброя") !== -1) return 120;
-  if (n.indexOf("Хрест заслуги") !== -1) return 210;
-
-  return 999;
-}
-
-function getUnitsMap() {
-  var sheet = SpreadsheetApp.openById(CONFIG.MAIN_SETTINGS_ID).getSheetByName("Units_Config");
-  var map = {};
-  if (sheet) {
-    var data = sheet.getDataRange().getValues();
-    for (var i = 1; i < data.length; i++) {
-      if (data[i][0]) map[data[i][0].toString().trim()] = { official: data[i][1], icon: data[i][2], driveId: data[i][3] };
-    }
-  }
-  return map;
-}
-
-function mapUnitName(unitMap, rawUnit) {
-  if (!rawUnit) return "";
-  return unitMap[rawUnit] ? unitMap[rawUnit].official : rawUnit;
-}
-
-function getKnownOfficialUnits(unitMap) {
-  var set = {};
-  for (var key in unitMap) {
-    var official = unitMap[key].official;
-    if (official) set[official.toString().trim()] = true;
-  }
-  return set;
-}
-
-function getReferenceCategoryPriority(cat) {
-  var n = (cat || "").toString().toLowerCase();
-  if (n.indexOf("державна") !== -1) return 1;
-  if (n.indexOf("моу") !== -1) return 2;
-  if (n.indexOf("гк зсу") !== -1) return 3;
-  return 10;
-}
-
-function pluralizeReferenceCategory(name) {
-  var l = (name || "").toString().toLowerCase();
-  if (l.indexOf("державна нагорода") !== -1) return "Державні нагороди";
-  if (l.indexOf("нагорода моу") !== -1) return "Нагороди МОУ";
-  if (l.indexOf("нагорода гк зсу") !== -1) return "Нагороди ГК ЗСУ";
-  return (name || "").toString().replace(/Нагорода/g, "Нагороди").replace(/нагорода/g, "нагороди");
-}
-
-function handleReference(code) {
-  var user = findUserByCode(code);
-  if (!user) return { ok: false, error: "unauthorized" };
-
-  logAction(user.id, "Довідник нагород");
-
-  var data = SpreadsheetApp.openById(CONFIG.MAIN_SETTINGS_ID)
-    .getSheetByName("Довідник нагород")
-    .getDataRange().getValues();
-
-  var ribbonSheet = SpreadsheetApp.openById(CONFIG.MAIN_SETTINGS_ID)
-    .getSheetByName("Нагородна картка")
-    .getDataRange().getValues();
-  var ribbonMap = {};
-  for (var ri = 1; ri < ribbonSheet.length; ri++) {
-    ribbonMap[normalizeAwardName(ribbonSheet[ri][0])] = ribbonSheet[ri][1];
-  }
-
-  function getPublicImageUrl(imgId) {
-    if (!imgId) return "";
-    imgId = imgId.toString().trim();
-    if (!imgId) return "";
-    return "https://drive.google.com/thumbnail?id=" + encodeURIComponent(imgId) + "&sz=w500";
-  }
-
-  var items = [];
-  var skipped = 0;
-  for (var i = 1; i < data.length; i++) {
-    try {
-      var name = data[i][1] ? data[i][1].toString().trim() : "";
-      if (!name) continue;
-
-      var category = data[i][0] ? data[i][0].toString().trim() : "Інше";
-      var imgId = findRibbonImageId(ribbonMap, name);
-
-      items.push({
-        category: category,
-        categoryLabel: pluralizeReferenceCategory(category),
-        name: name,
-        imageUrl: getPublicImageUrl(imgId),
-        desc: data[i][2] ? data[i][2].toString().trim() : "",
-        whom: data[i][3] ? data[i][3].toString().trim() : "",
-        perks: data[i][5] ? data[i][5].toString().trim() : "",
-        money: data[i][7] ? data[i][7].toString().trim() : ""
+    var saved = localStorage.getItem('nagorody_theme');
+    if (saved === 'light') {
+      document.documentElement.setAttribute('data-theme', 'light');
+      document.addEventListener('DOMContentLoaded', function(){
+        var m = document.querySelector('meta[name="theme-color"]');
+        if (m) m.setAttribute('content', '#F2EFE4');
       });
-    } catch (rowErr) {
-      skipped++;
     }
-  }
+  } catch(e) {}
+})();
+</script>
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Нагороди">
+<title>Нагороди — 57 ОМПБр</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;500;600;700;800&display=swap');
 
-  items.sort(function (a, b) {
-    var pa = getReferenceCategoryPriority(a.category);
-    var pb = getReferenceCategoryPriority(b.category);
-    if (pa !== pb) return pa - pb;
-    return getAwardPriority(a.name) - getAwardPriority(b.name);
-  });
-
-  return { ok: true, items: items };
+:root{
+  --step:#817847;
+  --mundir:#4D4634;
+  --header-grad-a:#25251D;
+  --header-grad-b:#1A1B17;
+  --zoloto:#DF7E01;
+  --zoloto-bright:#F29A00;
+  --zoloto-muted:#A79A5B;
+  --bg:#151614;
+  --surface-1:#1D1C18;
+  --surface-2:#24231C;
+  --border:rgba(150,140,80,0.25);
+  --border-soft:rgba(150,140,80,0.18);
+  --text-primary:#F1F0EC;
+  --text-secondary:#A8A8A4;
+  --text-muted:#8F908D;
+  --zoloto-on:#FFFFFF;
+  --radius:7px;
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bottom:env(safe-area-inset-bottom,0px);
 }
 
-// ==============================================================================
-// НАГОРОДНА КАРТКА (PDF) НА ОДНОГО ВІЙСЬКОВОСЛУЖБОВЦЯ
-// ==============================================================================
-function handleAwardCard(code, fullName, dob) {
-  var user = findUserByCode(code);
-  if (!user) return { ok: false, error: "unauthorized" };
+html[data-theme="light"]{
+  --step:#6A653A;
+  --mundir:#CFC8A6;
+  --header-grad-a:#F2EFE4;
+  --header-grad-b:#E6E2D2;
+  --zoloto:#F39200;
+  --zoloto-bright:#D97D00;
+  --zoloto-muted:#8F895F;
+  --bg:#F2EFE4;
+  --surface-1:#E6E2D2;
+  --surface-2:#D8D3BD;
+  --border:rgba(106,101,58,0.28);
+  --border-soft:rgba(106,101,58,0.18);
+  --text-primary:#1F1F1F;
+  --text-secondary:#5B5A4A;
+  --text-muted:#8F895F;
+  --zoloto-on:#FFFFFF;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;height:100%;overflow:hidden;background:var(--bg);}
+body{
+  font-family:'Roboto Condensed',-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+  color:var(--text-primary);
+  overscroll-behavior-y:none;
+  min-width:320px;
+}
+a{color:inherit;text-decoration:none;}
+button{font-family:inherit;}
 
-  if (!fullName || fullName.toString().trim() === "") {
-    return { ok: false, error: "no_name" };
-  }
-  fullName = fullName.toString().trim();
-  dob = dob ? dob.toString().trim() : "";
-
-  var data = SpreadsheetApp.openById(CONFIG.DATABASE_ID).getSheetByName("New").getDataRange().getValues();
-  var records = [];
-  for (var j = 1; j < data.length; j++) {
-    if (!data[j][3] || data[j][3].toString().trim() !== fullName) continue;
-    if (dob) {
-      var rowDob = data[j][9] ? data[j][9].toString().trim() : "";
-      if (rowDob !== dob) continue;
-    }
-    records.push(data[j]);
-  }
-
-  if (records.length === 0) {
-    return { ok: false, error: "not_found" };
-  }
-
-  logAction(user.id, "Нагородна картка", fullName);
-
-  var pdfBlob = buildAwardCardPdf(fullName, records);
-  var base64 = Utilities.base64Encode(pdfBlob.getBytes());
-
-  return {
-    ok: true,
-    filename: "Картка_" + fullName.replace(/\s+/g, "_") + ".pdf",
-    pdfBase64: base64
-  };
+#app{
+  display:flex;
+  flex-direction:column;
+  height:100vh;
+  height:100dvh;
+  max-width:520px;
+  margin:0 auto;
+  background:var(--bg);
+  overflow:hidden;
 }
 
-function normalizeAwardName(s) {
-  if (!s) return "";
-  return s.toString()
-    .replace(/[""„]/g, '"')
-    .replace(/['']/g, "'")
-    .replace(/\s+/g, ' ')
-    .trim();
+/* HEADER */
+header.topbar{
+  background:linear-gradient(135deg, var(--header-grad-a) 0%, var(--header-grad-b) 100%);
+  border-bottom:2px solid var(--zoloto);
+  padding:calc(clamp(6px, 1.4vh, 14px) + var(--safe-top)) 16px clamp(6px, 1.4vh, 14px);
+  display:flex;
+  align-items:center;
+  gap:12px;
+  flex-shrink:0;
+}
+header.topbar .emblem{
+  width:44px;height:44px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+}
+header.topbar .emblem img{width:100%;height:100%;object-fit:contain;}
+header.topbar .titles{flex:1;min-width:0;}
+header.topbar h1{
+  margin:0;font-size:24px;font-weight:800;letter-spacing:0.02em;
+  text-transform:uppercase;color:var(--text-primary);
+}
+header.topbar p{
+  margin:3px 0 0;font-size:12px;font-weight:600;color:var(--zoloto-muted);
+  text-transform:uppercase;letter-spacing:0.05em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+header.topbar .bell{
+  width:36px;height:36px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--zoloto);
+  background:transparent;border:none;padding:0;cursor:pointer;
+}
+header.topbar .bell svg{width:22px;height:22px;}
+
+/* SCREENS */
+main{flex:1;overflow-y:auto;padding:clamp(6px, 2vh, 16px) 16px calc(90px + var(--safe-bottom));}
+.screen{display:none;}
+.screen.active{display:block;animation:fadein .15s ease;}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+
+/* Обмеження скролу на головному екрані діє ЛИШЕ у встановленому застосунку
+   (display-mode: standalone). У звичайній вкладці браузера — перш ніж
+   людина встановила застосунок за особистим посиланням — головний екран
+   поводиться як звичайний скрольований екран, щоб не виглядати "завислим". */
+@media (display-mode: standalone){
+  main.home-fit{overflow:hidden;}
+  #screen-home.active{display:flex;flex-direction:column;height:100%;justify-content:space-between;}
+  #screen-home.active > *{flex-shrink:0;}
 }
 
-function extractQuotedPart(s) {
-  var m = (s || "").toString().match(/["«]([^"»]+)["»]/);
-  return m ? normalizeAwardName(m[1]).toLowerCase() : null;
+.card{
+  background:var(--surface-1);
+  border:1px solid var(--border-soft);
+  border-radius:var(--radius);
+  padding:clamp(10px, 2vh, 16px);
+  margin-bottom:clamp(6px, 1.4vh, 14px);
+}
+.card-title{
+  font-size:13px;font-weight:700;letter-spacing:0.04em;
+  color:var(--zoloto-muted);text-transform:uppercase;margin:0 0 12px;
 }
 
-function fuzzyAwardNameMatch(a, b) {
-  var na = normalizeAwardName(a).toLowerCase();
-  var nb = normalizeAwardName(b).toLowerCase();
-  if (na === nb) return true;
+/* Welcome card */
+.welcome-card{position:relative;overflow:hidden;min-height:clamp(130px, 17vh, 150px);}
+.welcome-content{position:relative;z-index:2;width:68%;}
+.welcome-trident{
+  position:absolute;left:82%;top:50%;transform:translate(-50%, -50%);
+  width:230px;height:230px;color:var(--text-primary);
+  z-index:1;pointer-events:none;
+}
+.welcome-trident .watermark{width:100%;height:100%;opacity:0.13;}
+.welcome-card .eyebrow{font-size:13px;font-weight:600;color:var(--zoloto-muted);text-transform:uppercase;letter-spacing:0.05em;margin:0;}
+.welcome-card h2{
+  margin:5px 0 13px;font-size:clamp(20px, 6.2vw, 26px);font-weight:800;letter-spacing:0.003em;line-height:1.15;
+  border-bottom:3px solid var(--zoloto);padding-bottom:12px;display:inline-block;
+  white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;
+}
+.welcome-card h2.name-md{font-size:clamp(16px, 4.8vw, 20px);}
+.welcome-card h2.name-sm{font-size:clamp(13px, 4vw, 16px);}
+.welcome-card .unit-row{display:flex;align-items:center;gap:11px;}
+.welcome-card .unit-badge{
+  width:32px;height:32px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+}
+.welcome-card .unit-badge img{width:100%;height:100%;object-fit:contain;}
+.welcome-card .unit-name{font-size:14px;font-weight:600;color:var(--zoloto-muted);line-height:1.3;letter-spacing:0.03em;text-transform:uppercase;}
 
-  var qa = extractQuotedPart(a);
-  var qb = extractQuotedPart(b);
-  if (qa && qb && qa === qb) return true;
-
-  if (na.length > 3 && nb.length > 3 && (na.indexOf(nb) !== -1 || nb.indexOf(na) !== -1)) return true;
-
-  return false;
+@media (max-width:400px){
+  .welcome-trident{width:150px;height:150px;}
+  .welcome-trident .watermark{opacity:0.12;}
+  .welcome-card .unit-name{font-size:11px;}
 }
 
-function findRibbonImageId(ribbonMap, awardName) {
-  var direct = ribbonMap[normalizeAwardName(awardName)];
-  if (direct) return direct;
-
-  for (var key in ribbonMap) {
-    if (fuzzyAwardNameMatch(key, awardName)) return ribbonMap[key];
-  }
-  return "";
+/* Search card */
+.search-input-row{
+  display:flex;align-items:center;gap:8px;
+  background:var(--surface-2);border:1px solid var(--border);border-radius:6px;
+  padding:0 14px;height:clamp(38px, 6vh, 48px);margin-bottom:clamp(6px, 1.4vh, 12px);
+}
+.search-input-row svg{width:18px;height:18px;color:var(--text-muted);flex-shrink:0;}
+.search-input-row input{
+  flex:1;background:transparent;border:none;outline:none;color:var(--text-primary);font-size:15px;
+  min-width:0;font-family:inherit;
+}
+.search-input-row input::placeholder{color:var(--text-muted);}
+.btn-primary{
+  width:100%;background:var(--zoloto);color:var(--zoloto-on);border:none;
+  border-radius:7px;height:clamp(38px, 6vh, 48px);font-size:15px;font-weight:700;letter-spacing:0.04em;
+  text-transform:uppercase;cursor:pointer;font-family:inherit;
+}
+.btn-primary:active{background:var(--zoloto-bright);transform:translateY(1px);}
+.btn-outline{
+  width:100%;background:transparent;color:var(--zoloto);border:1px solid var(--zoloto);
+  border-radius:7px;height:38px;font-size:12px;font-weight:600;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:6px;
 }
 
-function buildAwardCardPdf(fullName, records) {
-  var awardsSheet = SpreadsheetApp.openById(CONFIG.MAIN_SETTINGS_ID)
-    .getSheetByName("Нагородна картка")
-    .getDataRange().getValues();
+/* Grid tiles */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:clamp(6px, 1.4vh, 12px);margin-bottom:clamp(6px, 1.4vh, 14px);}
+.tile{
+  background:var(--surface-1);border:1px solid var(--border-soft);border-radius:var(--radius);
+  padding:clamp(10px, 1.8vh, 16px) 14px;cursor:pointer;
+}
+.tile svg{width:24px;height:24px;color:var(--zoloto);margin-bottom:clamp(4px, 1vh, 10px);}
+.tile .tile-title{font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:0.01em;margin:0 0 4px;}
 
-  var awardsMap = {};
-  for (var i = 1; i < awardsSheet.length; i++) {
-    awardsMap[normalizeAwardName(awardsSheet[i][0])] = awardsSheet[i][1];
+/* Row card (documents / list item) */
+.row-card{
+  background:var(--surface-1);border:1px solid var(--border-soft);border-radius:var(--radius);
+  padding:clamp(8px, 1.6vh, 14px) 16px;margin-bottom:clamp(6px, 1.4vh, 14px);display:flex;align-items:center;gap:14px;cursor:pointer;
+}
+.row-card .icon-wrap{
+  width:38px;height:38px;flex-shrink:0;border-radius:8px;background:var(--surface-2);
+  display:flex;align-items:center;justify-content:center;color:var(--zoloto);
+}
+.row-card .icon-wrap svg{width:20px;height:20px;}
+.row-card .icon-wrap img{width:100%;height:100%;object-fit:contain;border-radius:8px;}
+.row-card .row-text{flex:1;min-width:0;}
+.row-card .row-title{font-size:14px;font-weight:700;text-transform:uppercase;margin:0 0 3px;}
+.row-card .row-sub{font-size:12px;color:var(--text-secondary);margin:0;}
+.row-card .chevron{width:16px;height:16px;color:var(--zoloto);flex-shrink:0;}
+
+/* Info card */
+.info-card{display:flex;align-items:center;gap:12px;}
+.info-card .icon-wrap{
+  width:32px;height:32px;flex-shrink:0;border-radius:50%;border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;color:var(--text-secondary);
+}
+.info-card .icon-wrap svg{width:16px;height:16px;}
+.info-card p{margin:0;font-size:12px;}
+.info-card .info-label{color:var(--text-secondary);text-transform:uppercase;font-size:10px;letter-spacing:0.03em;margin-bottom:2px;}
+
+/* Screen header (back + title) for non-home screens */
+.screen-header{display:flex;align-items:center;gap:10px;margin:0 0 16px;}
+.screen-header .back-btn{
+  width:34px;height:34px;border-radius:8px;background:var(--surface-1);border:1px solid var(--border-soft);
+  display:flex;align-items:center;justify-content:center;color:var(--text-primary);cursor:pointer;flex-shrink:0;
+}
+.screen-header .back-btn svg{width:18px;height:18px;}
+.screen-header h2{margin:0;font-size:16px;font-weight:700;text-transform:uppercase;letter-spacing:0.01em;}
+
+.placeholder-note{
+  text-align:center;color:var(--text-muted);font-size:12px;padding:40px 20px;line-height:1.6;
+}
+.body-note{color:var(--text-secondary);font-size:13px;line-height:1.55;margin:0;text-align:justify;}
+.digest-card{text-align:center;}
+.digest-card .body-note{text-align:center;}
+#screen-howto .body-note{text-indent:1.4em;}
+.howto-list{margin:8px 0 0;padding-left:20px;color:var(--text-secondary);font-size:13px;line-height:1.6;text-align:left;}
+.howto-list li{margin-bottom:4px;}
+
+/* Search results */
+.results-meta{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.03em;margin:0 0 10px;}
+.person-card{
+  background:var(--surface-1);border:1px solid var(--border-soft);border-radius:var(--radius);
+  margin-bottom:12px;overflow:hidden;
+}
+.person-card .person-head{
+  padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;
+}
+.person-card .person-info{flex:1;min-width:0;}
+.person-card .person-name{font-size:14px;font-weight:700;margin:0 0 3px;}
+.person-card .person-unit{font-size:12px;color:var(--text-secondary);margin:0;}
+.person-card .person-count{
+  flex-shrink:0;background:var(--surface-2);border:1px solid var(--border);border-radius:6px;
+  padding:4px 8px;font-size:11px;font-weight:700;color:var(--zoloto);white-space:nowrap;
+}
+.person-card .person-chevron{
+  width:16px;height:16px;color:var(--text-muted);flex-shrink:0;transition:transform .15s ease;
+}
+.person-card.expanded .person-chevron{transform:rotate(90deg);}
+.person-card .awards-list{display:none;border-top:1px solid var(--border-soft);}
+.person-card.expanded .awards-list{display:block;}
+.award-row{
+  padding:12px 16px;border-bottom:1px solid var(--surface-2);
+}
+.award-row:last-child{border-bottom:none;}
+.award-card-download{padding:12px 16px 16px;}
+.award-row .award-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:4px;}
+.award-row .award-name{font-size:13px;font-weight:600;line-height:1.35;}
+.award-row .award-order{font-size:11px;color:var(--text-muted);}
+.award-tag{
+  flex-shrink:0;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.02em;
+  padding:3px 7px;border-radius:4px;white-space:nowrap;
+}
+.award-tag.tier-top{background:var(--zoloto);color:var(--zoloto-on);}
+.award-tag.tier-other{background:var(--step);color:#E8E6D8;}
+.search-loading{text-align:center;padding:24px;color:var(--text-muted);font-size:12px;}
+
+/* Theme toggle */
+.theme-toggle{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.theme-btn{
+  height:44px;border-radius:7px;border:1px solid var(--border);background:var(--surface-2);
+  color:var(--text-secondary);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:7px;
+}
+.theme-btn.active{background:var(--zoloto);color:var(--zoloto-on);border-color:var(--zoloto);}
+
+/* Statistics */
+.stats-year-row{
+  display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;margin-bottom:14px;
+  -ms-overflow-style:none;scrollbar-width:none;
+}
+.stats-year-row::-webkit-scrollbar{display:none;}
+.stats-chip{
+  flex-shrink:0;height:34px;padding:0 14px;border-radius:17px;border:1px solid var(--border);
+  background:var(--surface-1);color:var(--text-secondary);font-family:inherit;font-size:13px;font-weight:600;
+  cursor:pointer;white-space:nowrap;
+}
+.stats-chip.active{background:var(--zoloto);color:var(--zoloto-on);border-color:var(--zoloto);}
+.stats-tabs{display:flex;gap:6px;margin-bottom:14px;}
+.stats-tab{
+  flex:1;height:38px;border-radius:7px;border:1px solid var(--border-soft);background:var(--surface-1);
+  color:var(--text-secondary);font-family:inherit;font-size:13px;font-weight:600;text-transform:uppercase;
+  letter-spacing:0.01em;cursor:pointer;
+}
+.stats-tab.active{background:var(--zoloto);color:var(--zoloto-on);border-color:var(--zoloto);}
+.stats-metric-card{margin-bottom:14px;}
+.stats-metric-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.03em;margin:0 0 4px;}
+.stats-metric-value{font-size:30px;font-weight:800;color:var(--text-primary);margin:0;}
+.chart-card{margin-bottom:14px;}
+.chart-wrap{position:relative;height:220px;}
+.chart-wrap.chart-wrap-trend{height:180px;}
+.stats-rank-row{
+  display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--surface-2);cursor:pointer;
+}
+.stats-rank-row:last-child{border-bottom:none;}
+.stats-rank-num{width:22px;flex-shrink:0;font-size:13px;font-weight:700;color:var(--text-muted);text-align:center;}
+.stats-rank-name{margin:0;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.stats-rank-sub{font-size:11px;color:var(--text-secondary);margin:1px 0 0;}
+.stats-rank-count{flex-shrink:0;font-size:14px;font-weight:700;color:var(--zoloto);}
+.stats-download-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.stats-detail-header{margin:0 0 14px;}
+.stats-detail-header h2{margin:0;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:0.01em;}
+
+/* Bottom nav */
+nav.bottombar{
+  position:fixed;left:0;right:0;bottom:0;
+  max-width:520px;margin:0 auto;
+  background:var(--surface-1);border-top:1px solid var(--border-soft);
+  display:flex;justify-content:space-around;align-items:stretch;
+  padding-bottom:var(--safe-bottom);
+  z-index:10;
+}
+nav.bottombar button{
+  flex:1;background:none;border:none;padding:9px 4px 8px;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  color:var(--text-muted);
+}
+nav.bottombar button svg{width:21px;height:21px;}
+nav.bottombar button span{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.02em;}
+nav.bottombar button.active{color:var(--zoloto);}
+nav.bottombar button.active .indicator{
+  position:absolute;
+}
+
+/* AUTH GATE */
+#auth-gate{
+  position:fixed;inset:0;z-index:100;
+  background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:24px;
+}
+#auth-gate.hidden{display:none;}
+.auth-box{width:100%;max-width:340px;text-align:center;}
+.auth-box .emblem{width:72px;height:72px;margin:0 auto 20px;}
+.auth-box .emblem img{width:100%;height:100%;object-fit:contain;}
+.auth-box h2{font-size:16px;margin:0 0 6px;text-transform:uppercase;letter-spacing:0.02em;}
+.auth-box p.sub{font-size:12px;color:var(--text-secondary);margin:0 0 24px;line-height:1.5;}
+.auth-box input{
+  width:100%;height:48px;background:var(--surface-2);border:1px solid var(--border);
+  border-radius:8px;color:var(--text-primary);text-align:center;font-size:18px;letter-spacing:0.12em;
+  text-transform:uppercase;outline:none;margin-bottom:12px;font-weight:700;
+}
+.auth-box input::placeholder{color:var(--text-muted);letter-spacing:0.04em;font-weight:400;font-size:13px;text-transform:none;}
+.auth-box .auth-error{
+  display:none;color:var(--zoloto);font-size:12px;margin:-4px 0 14px;line-height:1.5;
+}
+.auth-box .auth-error.show{display:block;}
+.auth-spinner{
+  display:none;width:20px;height:20px;border:2px solid rgba(240,238,230,0.25);
+  border-top-color:var(--zoloto);border-radius:50%;margin:0 auto;
+  animation:spin .7s linear infinite;
+}
+.auth-spinner.show{display:block;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* FORCED PIN SETUP (одразу після першого входу за кодом) — той самий
+   вигляд, що auth-gate; показується ЗАМІСТЬ застосунку, не поверх нього */
+#forced-pin-gate{
+  position:fixed;inset:0;z-index:150;
+  background:var(--bg);
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  padding:24px;
+}
+#forced-pin-gate.show{display:flex;}
+
+/* LOCK GATE (PIN / біометрія) — той самий вигляд, що auth-gate, вищий z-index,
+   бо може накриватись поверх уже видимого #app */
+#lock-gate{
+  position:fixed;inset:0;z-index:200;
+  background:var(--bg);
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  padding:24px;
+}
+#lock-gate.show{display:flex;}
+.lock-pin-dots{display:flex;justify-content:center;gap:18px;margin:32px 0 40px;}
+.lock-pin-dots span{
+  width:14px;height:14px;border-radius:50%;border:1.5px solid var(--border);
+  background:transparent;transition:background .15s,border-color .15s;
+}
+.lock-pin-dots span.filled{background:var(--zoloto);border-color:var(--zoloto);}
+.lock-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;width:100%;max-width:250px;margin:0 auto;}
+.lock-keypad button{
+  aspect-ratio:1/1;width:100%;border-radius:50%;background:var(--surface-2);border:1px solid var(--border);
+  color:var(--text-primary);font-size:22px;font-weight:600;
+}
+.lock-keypad button.lock-key-empty{background:transparent;border:none;visibility:hidden;}
+.lock-keypad button.lock-key-backspace{background:transparent;border:none;font-size:17px;}
+.lock-keypad button.lock-key-backspace.lock-key-empty{visibility:hidden;}
+
+/* Власне спливаюче вікно замість системного confirm() — без назви домену */
+#custom-confirm-overlay{
+  position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.55);
+  display:none;align-items:center;justify-content:center;padding:24px;
+}
+#custom-confirm-overlay.show{display:flex;}
+.custom-confirm-box{
+  background:var(--surface-1);border-radius:14px;padding:24px 20px;max-width:320px;width:100%;
+  text-align:center;
+}
+.custom-confirm-box p{font-size:14px;color:var(--text-primary);line-height:1.5;margin:0 0 20px;}
+.custom-confirm-actions{display:flex;gap:12px;}
+.custom-confirm-actions button{
+  flex:1;height:44px;border-radius:8px;font-size:14px;font-weight:700;border:1px solid var(--border);
+  background:var(--surface-2);color:var(--text-primary);
+}
+.custom-confirm-actions button.confirm-yes{background:var(--zoloto);color:var(--zoloto-on);border-color:var(--zoloto);}
+.admin-delete-btn{flex-shrink:0;background:transparent;border:1px solid #C0392B;color:#C0392B;border-radius:6px;font-size:11px;font-weight:700;padding:5px 10px;}
+
+/* Адмін-панель — картки користувачів (активні/неактивні) */
+.admin-section-title{display:flex;align-items:center;gap:10px;margin:0 0 12px;}
+.admin-section-title .icon-wrap{
+  width:28px;height:28px;flex-shrink:0;border-radius:8px;background:var(--surface-2);
+  display:flex;align-items:center;justify-content:center;color:var(--zoloto-muted);
+}
+.admin-section-title .icon-wrap svg{width:15px;height:15px;}
+.admin-section-title p{margin:0;}
+.admin-user-row{
+  display:flex;align-items:center;gap:12px;background:var(--surface-2);
+  border:1px solid var(--border-soft);border-radius:10px;padding:10px 12px;margin-top:10px;
+}
+.admin-user-avatar{
+  width:48px;height:48px;flex-shrink:0;border-radius:9px;background:var(--surface-1);
+  display:flex;align-items:center;justify-content:center;color:var(--zoloto-muted);
+}
+.admin-user-row.is-active .admin-user-avatar{color:var(--zoloto);}
+.admin-user-avatar svg{width:28px;height:28px;}
+.admin-user-info{flex:1;min-width:0;}
+.admin-user-name{font-size:14.5px;font-weight:800;margin:0 0 2px;line-height:1.2;}
+.admin-user-unit-pill{
+  display:inline-block;font-size:10.5px;font-weight:700;color:var(--zoloto-muted);
+  background:var(--surface-1);border:1px solid var(--border-soft);border-radius:6px;
+  padding:2px 8px;margin-bottom:4px;
+}
+.admin-user-meta{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--text-secondary);}
+.admin-user-meta svg{width:13px;height:13px;flex-shrink:0;}
+.admin-delete-stack{
+  flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:2px;
+  background:transparent;border:1px solid #C0392B;color:#C0392B;border-radius:8px;
+  font-size:8.5px;font-weight:700;letter-spacing:0.01em;padding:6px 7px;text-transform:uppercase;
+}
+.admin-delete-stack svg{width:16px;height:16px;}
+.admin-qr-btn{
+  flex-shrink:0;width:40px;height:40px;border-radius:8px;background:transparent;
+  border:1px solid var(--zoloto-muted);color:var(--zoloto-muted);
+  display:flex;align-items:center;justify-content:center;
+}
+.admin-qr-btn svg{width:20px;height:20px;}
+
+/* Модалка "Посилання / QR" для вже існуючого користувача */
+#user-link-overlay{
+  position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.55);
+  display:none;align-items:center;justify-content:center;padding:24px;
+}
+#user-link-overlay.show{display:flex;}
+.user-link-box{
+  background:var(--surface-1);border-radius:14px;padding:22px 20px;max-width:320px;width:100%;
+  text-align:center;
+}
+.user-link-box h3{font-size:15px;margin:0 0 14px;text-transform:uppercase;letter-spacing:0.02em;}
+.user-link-box .user-link-qr{display:flex;justify-content:center;margin-bottom:14px;background:#fff;border-radius:8px;padding:12px;}
+.user-link-box p{font-size:12px;word-break:break-all;color:var(--text-secondary);margin:0 0 14px;}
+.user-link-box button{width:100%;height:42px;border-radius:8px;font-size:13px;font-weight:700;border:1px solid var(--border);background:var(--surface-2);color:var(--text-primary);}
+.user-link-box button.close-link-btn{margin-top:8px;}
+
+/* offline banner */
+#offline-banner{
+  display:none;background:var(--zoloto);color:var(--zoloto-on);text-align:center;
+  font-size:12px;font-weight:700;padding:6px 10px;
+}
+#offline-banner.show{display:block;}
+
+/* install hint */
+.install-hint{
+  background:var(--surface-2);border:1px dashed var(--border);border-radius:var(--radius);
+  padding:12px 14px;font-size:12px;color:var(--text-secondary);margin-bottom:14px;line-height:1.5;
+}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+<div id="offline-banner">Немає з'єднання — показані збережені дані</div>
+
+<div id="auth-gate">
+  <div class="auth-box">
+    <div class="emblem"><img src="icons/icon-192.png" alt="Емблема"></div>
+    <h2>Нагороди 57 ОМПБр</h2>
+    <p class="sub">Введіть персональний код доступу, наданий адміністратором</p>
+    <input type="text" id="auth-code-input" placeholder="Наприклад: A7K9X2QM" maxlength="12" autocomplete="off" autocapitalize="characters">
+    <p class="auth-error" id="auth-error">Невірний код доступу. Перевірте і спробуйте ще раз.</p>
+    <button class="btn-primary" id="auth-submit-btn" onclick="submitAuthCode()">Увійти</button>
+    <div class="auth-spinner" id="auth-spinner" style="margin-top:16px;"></div>
+  </div>
+</div>
+
+<!-- LOCK GATE: локальний замок (PIN або біометрія), поверх уже автентифікованої сесії -->
+<div id="lock-gate">
+  <div class="auth-box" id="lock-pin-view">
+    <div class="emblem"><img src="icons/icon-192.png" alt="Емблема"></div>
+    <h2>Застосунок заблоковано</h2>
+    <p class="sub" id="lock-pin-sub">Введіть PIN-код</p>
+    <div class="lock-pin-dots" id="lock-pin-dots"></div>
+    <p class="auth-error" id="lock-pin-error">Невірний PIN. Спробуйте ще раз.</p>
+    <p class="auth-error show" id="lock-pin-lockout-msg" style="display:none;"></p>
+    <div class="lock-keypad" id="lock-keypad"></div>
+  </div>
+</div>
+
+<!-- Примусове встановлення PIN одразу після першого входу за персональним кодом -->
+<div id="forced-pin-gate">
+  <div class="auth-box">
+    <div class="emblem"><img src="icons/icon-192.png" alt="Емблема"></div>
+    <h2>Захист входу</h2>
+    <p class="sub">Придумайте PIN-код, яким надалі будете розблоковувати застосунок на цьому пристрої</p>
+    <input type="password" id="forced-pin-1" inputmode="numeric" maxlength="6" placeholder="Новий PIN (4-6 цифр)">
+    <input type="password" id="forced-pin-2" inputmode="numeric" maxlength="6" placeholder="Повторіть PIN">
+    <p class="auth-error" id="forced-pin-error">PIN-коди не співпадають.</p>
+    <button class="btn-primary" onclick="saveForcedPinSetup()">Зберегти і продовжити</button>
+  </div>
+</div>
+
+<!-- Власне спливаюче вікно підтвердження (замість системного confirm()) -->
+<div id="custom-confirm-overlay">
+  <div class="custom-confirm-box">
+    <p id="custom-confirm-message"></p>
+    <div class="custom-confirm-actions">
+      <button onclick="closeCustomConfirm(false)">Скасувати</button>
+      <button class="confirm-yes" onclick="closeCustomConfirm(true)">Так</button>
+    </div>
+  </div>
+</div>
+
+<!-- Посилання / QR для вже існуючого користувача (адмін-панель) -->
+<div id="user-link-overlay">
+  <div class="user-link-box">
+    <h3 id="user-link-title"></h3>
+    <div class="user-link-qr" id="user-link-qr"></div>
+    <p id="user-link-text"></p>
+    <button onclick="copyUserLinkModal()">Скопіювати посилання</button>
+    <button class="close-link-btn" onclick="closeUserLinkModal()">Закрити</button>
+  </div>
+</div>
+
+<div id="app" style="display:none;">
+
+  <header class="topbar">
+    <div class="emblem"><img src="icons/icon-192.png" alt="Емблема"></div>
+    <div class="titles">
+      <h1>Нагороди</h1>
+      <p>57 окрема мотопіхотна бригада</p>
+    </div>
+    <button class="bell" aria-label="Сповіщення" onclick="openDigest()" style="position:relative;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+      <span id="bell-dot" style="display:none; position:absolute; top:2px; right:2px; width:9px; height:9px; border-radius:50%; background:var(--zoloto); border:2px solid var(--header-grad-b);"></span>
+    </button>
+  </header>
+
+  <main id="main" class="home-fit">
+
+    <!-- HOME -->
+    <section class="screen active" id="screen-home">
+      <div class="card welcome-card">
+        <div class="welcome-content">
+          <p class="eyebrow">Вітаю,</p>
+          <h2 id="user-name">—</h2>
+          <div class="unit-row">
+            <div class="unit-badge">
+              <img src="icons/icon-192.png" alt="">
+            </div>
+            <p class="unit-name" id="user-unit">Підрозділ не визначено</p>
+          </div>
+        </div>
+        <div class="welcome-trident">
+          <svg class="watermark" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M179.6,274.6h-61.2V119.1c23.5,10.6,35,34.2,35,71.2c0,12.9-1.3,27.1-4.4,49.9h33l-1.1-42.8c-0.4-15.5-2.9-48.6-2.9-53.2c0-19.7,7.3-37.5,21.5-52.8c14.2,15.3,21.5,33,21.5,52.8c0,4.7-2.4,37.7-2.9,53.2l-1.1,42.8h33c-3.1-22.8-4.4-37-4.4-49.9c0-37,11.5-60.5,35-71.2v155.5h-61.2c-4.2,12.2-11.1,24.6-20,35.3C190.7,299.2,183.8,286.8,179.6,274.6"/></svg>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="card-title">Пошук військовослужбовця</p>
+        <div class="search-input-row">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+          <input type="text" id="home-search-input" placeholder="Введіть прізвище, ім'я..." onkeydown="if(event.key==='Enter'){goToSearchFromHome(this.value);}">
+        </div>
+        <button class="btn-primary" style="margin-top:12px;width:100%;" onclick="goToSearchFromHome(document.getElementById('home-search-input').value)">Пошук</button>
+      </div>
+
+      <div class="grid-2">
+        <div class="tile" onclick="navigate('howto')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+          <p class="tile-title">Як нагородити?</p>
+          <p class="row-sub" style="margin:0;font-size:11px;">Порядок дій для подання на нагороду</p>
+        </div>
+        <div class="tile" onclick="navigate('reference')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="15" r="5"/><path d="M8.5 10L7 3h10l-1.5 7"/></svg>
+          <p class="tile-title">Довідник нагород</p>
+          <p class="row-sub" style="margin:0;font-size:11px;">Опис та порядок нагород</p>
+        </div>
+      </div>
+
+      <div class="row-card" onclick="navigate('docs')">
+        <div class="icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/></svg>
+        </div>
+        <div class="row-text">
+          <p class="row-title">Документи</p>
+          <p class="row-sub">Зразки документів та корисні матеріали</p>
+        </div>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+      </div>
+
+      <div class="card info-card">
+        <div class="icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        </div>
+        <div>
+          <p class="info-label">Інформація</p>
+          <p id="last-updated">Дані оновлено: —</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SEARCH -->
+    <section class="screen" id="screen-search">
+      <div class="screen-header">
+        <button class="back-btn" onclick="navigate('home')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <h2>Пошук військовослужбовця</h2>
+      </div>
+      <div class="card">
+        <div class="search-input-row">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+          <input type="text" id="search-input" placeholder="Введіть прізвище, ім'я...">
+        </div>
+        <button class="btn-primary" onclick="performSearch()">Пошук</button>
+      </div>
+      <div id="search-results"></div>
+    </section>
+
+    <!-- STATISTICS -->
+    <section class="screen" id="screen-stats">
+      <div class="screen-header">
+        <button class="back-btn" onclick="navigate('home')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <h2>Статистика</h2>
+      </div>
+
+      <div class="stats-year-row" id="stats-year-row"></div>
+
+      <div class="stats-tabs" id="stats-tabs">
+        <button class="stats-tab active" data-tab="gen" onclick="setStatsTab('gen')">Загальна</button>
+        <button class="stats-tab" data-tab="unit" onclick="setStatsTab('unit')">Підрозділи</button>
+        <button class="stats-tab" data-tab="ppl" onclick="setStatsTab('ppl')">Люди</button>
+      </div>
+
+      <div id="stats-body"><div class="search-loading">Завантажую статистику...</div></div>
+    </section>
+
+    <!-- DIGEST -->
+    <section class="screen" id="screen-digest">
+      <div class="screen-header">
+        <button class="back-btn" onclick="navigate('home')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <h2>Дайджест місяця</h2>
+      </div>
+      <div id="digest-body"><div class="search-loading">Завантажую дайджест...</div></div>
+    </section>
+
+    <!-- REFERENCE -->
+    <section class="screen" id="screen-reference">
+      <div class="screen-header">
+        <button class="back-btn" onclick="refBack()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <h2>Довідник нагород</h2>
+      </div>
+      <div id="reference-body"></div>
+    </section>
+
+    <!-- DOCUMENTS -->
+    <section class="screen" id="screen-docs">
+      <div class="screen-header">
+        <button class="back-btn" onclick="navigate('home')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <h2>Документи</h2>
+      </div>
+
+      <p class="card-title" style="margin:4px 0 8px;">Рапорт та подання (державні, МОУ, ГК)</p>
+
+      <a class="row-card" style="text-decoration:none;color:inherit;" href="https://docs.google.com/document/d/1Z1xN9BEUObhpHi95YoRZH-05ayJKFBqs/view" target="_blank" rel="noopener">
+        <div class="icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/></svg>
+        </div>
+        <div class="row-text">
+          <p class="row-title">Зразок рапорту</p>
+          <p class="row-sub">Перший документ, який подається на погодження</p>
+        </div>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+      </a>
+
+      <a class="row-card" style="text-decoration:none;color:inherit;" href="https://docs.google.com/document/d/1MvU48qD103VkZstKdSCE7yuC2xaoU3pg/view" target="_blank" rel="noopener">
+        <div class="icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/></svg>
+        </div>
+        <div class="row-text">
+          <p class="row-title">Зразок подання</p>
+          <p class="row-sub">Готується після погодження рапорту</p>
+        </div>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+      </a>
+
+      <p class="card-title" style="margin:18px 0 8px;">Медаль «За поранення»</p>
+
+      <a class="row-card" style="text-decoration:none;color:inherit;" href="https://docs.google.com/document/d/1Qg8r0ZzDKwvMiXeUUaJtBC_VnYGYsJln/view" target="_blank" rel="noopener">
+        <div class="icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/></svg>
+        </div>
+        <div class="row-text">
+          <p class="row-title">Зразок подання</p>
+          <p class="row-sub">Подається разом з висновком ВЛК</p>
+        </div>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+      </a>
+
+      <a class="row-card" style="text-decoration:none;color:inherit;" href="https://docs.google.com/document/d/18dJZW23qJfRL4kdsexae-oT7YuasfgN-/view" target="_blank" rel="noopener">
+        <div class="icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/></svg>
+        </div>
+        <div class="row-text">
+          <p class="row-title">Зразок довідки медичної служби</p>
+          <p class="row-sub">Готується, якщо у висновку ВЛК не визначено ступінь важкості</p>
+        </div>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+      </a>
+    </section>
+
+    <!-- HOW TO -->
+    <section class="screen" id="screen-howto">
+      <div class="screen-header">
+        <button class="back-btn" onclick="navigate('home')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <h2>Як нагородити?</h2>
+      </div>
+
+      <div class="card">
+        <p class="card-title">Категорії нагород</p>
+        <p class="body-note">Існують наступні категорії нагород, які отримують наші військовослужбовці. За спадною значимістю їх можна умовно розподілити так:</p>
+        <p class="body-note" style="margin-top:8px;">Найвищі за значимістю:</p>
+        <ol class="howto-list">
+          <li>Державні нагороди.</li>
+          <li>Нагороди Міністерства оборони України.</li>
+          <li>Нагороди Головнокомандувача Збройних Сил України.</li>
+        </ol>
+        <p class="body-note" style="margin-top:8px;">Наступну категорію становлять:</p>
+        <ol class="howto-list" start="4">
+          <li>Нагороди Командувача Сухопутних військ Збройних Сил України.</li>
+          <li>Нагороди Командувача Угруповання об'єднаних сил.</li>
+          <li>Нагороди командувачів оперативних командувань.</li>
+          <li>Бригадні нагрудні знаки.</li>
+        </ol>
+      </div>
+
+      <div class="card">
+        <p class="card-title">Як відбувається нагородження</p>
+        <p class="body-note">Вручення нагород може відбуватися з нагоди державних, військових та інших визначених свят. У такому випадку від вищих штабів надходить вказівка подати кандидатів на нагородження.</p>
+        <p class="body-note" style="margin-top:8px;">Для державних нагород, нагород Міністерства оборони України та нагород Головнокомандувача Збройних Сил України обов'язково оформлюється подання, яке подається через відділення персоналу штабу. Зразок подання з детальним поясненням щодо його оформлення доступний у розділі "Документи".</p>
+        <p class="body-note" style="margin-top:8px;">Водночас для цих трьох категорій нагород не обов'язково чекати святкової дати або вказівки від вищого штабу. Якщо командир підрозділу вважає військовослужбовця гідним нагородження, він може подати рапорт про нагородження на ім'я командира військової частини.</p>
+        <p class="body-note" style="margin-top:8px;">Якщо рапорт погоджено, наступним кроком є оформлення подання про нагородження відповідного військовослужбовця. Зразок рапорту доступний у розділі "Документи".</p>
+      </div>
+
+      <div class="card">
+        <p class="card-title">Нагородження з нагоди свята</p>
+        <p class="body-note">Нагороди інших категорій, як правило, вручаються з нагоди свят.</p>
+        <p class="body-note" style="margin-top:8px;">Останнім часом для нагородження від Командувача Угруповання об'єднаних сил також вимагалося подання, однак вимоги до такого подання є менш суворими. Оскільки підрозділи не можуть з власної ініціативи зробити подання на цю нагороду, його зразок не публікується в розділі "Документи", а надається окремо — за потреби.</p>
+        <p class="body-note" style="margin-top:8px;">У випадку нагородження з нагоди свята підрозділ отримує вимогу подати список кандидатів на нагородження відповідно до визначеного розрахунку. Кількість кандидатів у кожному випадку може бути різною.</p>
+        <p class="body-note" style="margin-top:8px;">Список кандидатів подається до відділення психологічної підтримки персоналу у такому форматі: військове звання, ПІБ, посада — повністю, без скорочень.</p>
+        <p class="body-note" style="margin-top:8px;">У виняткових випадках бригадним нагрудним знаком військової частини може бути нагороджено військовослужбовця і поза межами святкових заходів. Таке питання вирішується за зверненням до заступника командира військової частини з психологічної підтримки персоналу — начальника відділення психологічної підтримки персоналу.</p>
+      </div>
+
+      <div class="card">
+        <p class="card-title">Перевірка попередніх нагород</p>
+        <p class="body-note">Перед підготовкою рапорту, або подання, обов'язково перевіряйте через розділ "Пошук" якими нагородами військовослужбовець був нагороджений раніше.</p>
+      </div>
+
+      <div class="card" style="border-color:var(--zoloto);">
+        <p class="card-title" style="color:var(--zoloto);">Важливо</p>
+        <p class="body-note">До подання на державні нагороди додаємо копії документів: перша сторінка паспорта + ІПН. У разі посмертного нагородження — свідоцтво про смерть з ДРАЦС (лікарське свідоцтво про смерть не підходить).</p>
+        <p class="body-note" style="margin-top:8px;">Скан-копії мають бути гарної якості. Якщо текст розмитий, вищі штаби не приймуть дані копії і, відповідно, кандидата до нагородження не погодять.</p>
+        <p class="body-note" style="margin-top:8px;">До подання на медаль «За поранення» обов'язково додається висновок ВЛК нового зразка, в якому зазначено ступінь важкості поранення (легке або важке). Якщо у наявному висновку ВЛК ступінь важкості поранення не зазначено — необхідно отримати довідку від медичної служби. На підставі наявного висновку ВЛК медична служба самостійно визначає ступінь важкості та видає відповідну довідку.</p>
+        <p class="body-note" style="margin-top:8px;">Зразки подання та довідки медичної служби доступні в розділі "Документи".</p>
+      </div>
+    </section>
+
+    <!-- SETTINGS (раніше "Ще") -->
+    <section class="screen" id="screen-more">
+      <div class="screen-header">
+        <h2>Налаштування</h2>
+      </div>
+      <div class="card">
+        <p class="card-title">Тема застосунку</p>
+        <div class="theme-toggle">
+          <button class="theme-btn" id="theme-btn-dark" onclick="setTheme('dark')">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+            Темна
+          </button>
+          <button class="theme-btn" id="theme-btn-light" onclick="setTheme('light')">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+            Світла
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="card-title">Захист входу</p>
+        <p class="body-note" id="app-lock-status" style="margin-top:8px;">Вимкнено</p>
+
+        <div id="app-lock-setup-area" style="margin-top:12px;display:none;">
+          <div class="search-input-row">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+            <input type="password" id="lock-setup-pin-1" inputmode="numeric" maxlength="6" placeholder="Новий PIN (4-6 цифр)">
+          </div>
+          <div class="search-input-row" style="margin-top:8px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+            <input type="password" id="lock-setup-pin-2" inputmode="numeric" maxlength="6" placeholder="Повторіть PIN">
+          </div>
+          <p class="body-note" id="lock-setup-error" style="color:#C0392B;margin-top:6px;display:none;"></p>
+          <button class="theme-btn active" style="width:100%;margin-top:10px;" onclick="saveLockSetup()">Зберегти захист</button>
+        </div>
+
+        <button class="theme-btn active" style="width:100%;margin-top:8px;" onclick="showChangePinForm()" id="app-lock-change-btn">Змінити PIN</button>
+      </div>
+
+      <a class="row-card" id="admin-menu-item" style="display:none;text-decoration:none;color:inherit;" onclick="navigate('admin')">
+        <div class="icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="5" width="3" height="13"/></svg>
+        </div>
+        <div class="row-text">
+          <p class="row-title">Адмін-панель</p>
+          <p class="row-sub">Активність користувачів застосунку</p>
+        </div>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+      </a>
+    </section>
+
+    <!-- ADMIN STATS -->
+    <section class="screen" id="screen-admin">
+      <div class="screen-header">
+        <button class="back-btn" onclick="navigate('more')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <h2>Адмін-панель</h2>
+      </div>
+
+      <div class="card">
+        <p class="card-title">Додати користувача</p>
+        <div class="search-input-row" style="margin-top:10px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
+          <input type="text" id="admin-new-name" placeholder="Прізвище Ім'я По-батькові">
+        </div>
+        <div class="search-input-row" style="margin-top:8px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h1M14 9h1M9 13h1M14 13h1"/></svg>
+          <input type="text" id="admin-new-unit" placeholder="Підрозділ">
+        </div>
+        <button class="theme-btn active" style="width:100%;margin-top:12px;" onclick="submitAdminAddUser()">Додати користувача</button>
+        <div id="admin-add-result" style="margin-top:10px;"></div>
+      </div>
+
+      <div id="admin-body"><div class="search-loading">Завантажую...</div></div>
+    </section>
+
+  </main>
+
+  <nav class="bottombar">
+    <button data-screen="home" class="active" onclick="navigate('home')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+      <span>Головна</span>
+    </button>
+    <button data-screen="stats" onclick="navigate('stats')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="5" width="3" height="13"/></svg>
+      <span>Статистика</span>
+    </button>
+    <button data-screen="more" onclick="navigate('more')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09c0 .68.39 1.29 1 1.51.63.24 1.35.11 1.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06c-.44.47-.57 1.19-.33 1.82.22.61.83 1 1.51 1H21a2 2 0 010 4h-.09c-.68 0-1.29.39-1.51 1z"/></svg>
+      <span>Налаштування</span>
+    </button>
+  </nav>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
+<script>
+// ---------- Налаштування API ----------
+const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbwJktVQ9C6kpWi8oVb3lSk8CGDxqwkh35x6JwnQgEemlP0ky8qtgK30ZzDseDY9LSXK/exec';
+const AUTH_STORAGE_KEY = 'nagorody_auth';
+const THEME_STORAGE_KEY = 'nagorody_theme';
+
+var currentScreen = 'home';
+
+// ---------- Тема застосунку ----------
+function setTheme(theme){
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem(THEME_STORAGE_KEY, theme);
+  var metaTheme = document.querySelector('meta[name="theme-color"]');
+  if (metaTheme) metaTheme.setAttribute('content', theme === 'light' ? '#F2EFE4' : '#1A1B17');
+  var darkBtn = document.getElementById('theme-btn-dark');
+  var lightBtn = document.getElementById('theme-btn-light');
+  if (darkBtn && lightBtn) {
+    darkBtn.classList.toggle('active', theme !== 'light');
+    lightBtn.classList.toggle('active', theme === 'light');
   }
-
-  var total = records.length;
-  var formDate = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd.MM.yyyy");
-
-  var nameParts = fullName.trim().split(/\s+/);
-  var patronymic = nameParts.length >= 3 ? nameParts[2] : "";
-  var isFemale = patronymic.toLowerCase().match(/на$/) ? true : false;
-  var wasAwarded = isFemale ? "була відзначена" : "був відзначений";
-  var awardNoun = total === 1 ? "зазначеною нагородою" : "зазначеними нагородами";
-
-  function pluralizeCatName(cat) {
-    return cat.replace(/^Державна нагорода$/, "Державна нагорода");
+  if (currentScreen === 'stats' && typeof renderStatsBody === 'function') {
+    renderStatsBody();
   }
+}
 
-  var awardsByCategory = {};
-  for (var k = 0; k < records.length; k++) {
-    var r = records[k];
-    var cat = r[2] || "Інше";
-    if (!awardsByCategory[cat]) awardsByCategory[cat] = [];
-    awardsByCategory[cat].push(r);
-  }
+// ---------- Авторизація ----------
+function showApp(user, dataUpdatedAt){
+  var nameEl = document.getElementById('user-name');
+  var name = user.name || '—';
+  nameEl.textContent = name;
+  nameEl.classList.remove('name-md', 'name-sm');
+  if (name.length > 24) nameEl.classList.add('name-sm');
+  else if (name.length > 16) nameEl.classList.add('name-md');
 
-  var sortedCats = Object.keys(awardsByCategory).sort(function (a, b) {
-    return getCategoryPriority(a) - getCategoryPriority(b);
-  });
+  document.getElementById('user-unit').textContent = user.unit || 'Підрозділ не визначено';
+  document.getElementById('last-updated').textContent = "Дані оновлено: " + (dataUpdatedAt || 'невідомо');
+  document.getElementById('auth-gate').classList.add('hidden');
+  document.getElementById('app').style.display = 'flex';
 
-  var flatAwards = [];
-  for (var sci = 0; sci < sortedCats.length; sci++) {
-    var cat = sortedCats[sci];
-    var catRecords = awardsByCategory[cat].slice();
-    catRecords.sort(function (a, b) {
-      var pA = getAwardPriority(a[5]);
-      var pB = getAwardPriority(b[5]);
-      if (pA !== pB) return pA - pB;
-      var yA = parseInt(extractYear(a[1])) || 0;
-      var yB = parseInt(extractYear(b[1])) || 0;
-      return yA - yB;
-    });
-    for (var ri = 0; ri < catRecords.length; ri++) {
-      flatAwards.push({ cat: cat, r: catRecords[ri] });
-    }
-  }
+  var adminItem = document.getElementById('admin-menu-item');
+  if (adminItem) adminItem.style.display = user.isAdmin ? 'flex' : 'none';
 
-  var BG = "#F2EFE4";
-  var CARD_BG = "#E9E4D4";
-  var LINE = "#CFC8A6";
-  var STEP = "#6A653A";
-  var TEXT = "#1F1F1F";
-  var TEXT_MUTED = "#6B6858";
-  var GOLD = "#F39200";
+  loadDigest();
+}
 
-  var COLS = 3;
-  var colWidth = 100 / COLS;
+function saveAuth(code, user, dataUpdatedAt){
+  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ code: code, user: user, dataUpdatedAt: dataUpdatedAt, savedAt: Date.now() }));
+}
 
-  function buildCardCellHtml(idx, widthPct) {
-    var item = flatAwards[idx];
-    var r = item.r;
-    var awardName = r[5] || "Назва відсутня";
-    var year = extractYear(r[1]);
-    var orderInfo = r[6] || "дані про наказ відсутні";
-    var num = idx + 1;
+function getSavedAuth(){
+  try {
+    var raw = localStorage.getItem(AUTH_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch(e){ return null; }
+}
 
-    var imgTag = "";
-    var imgId = awardsMap[normalizeAwardName(awardName)];
-    if (imgId) {
-      try {
-        var file = DriveApp.getFileById(imgId);
-        var b64 = Utilities.base64Encode(file.getBlob().getBytes());
-        imgTag = '<img src="data:image/png;base64,' + b64 + '" style="height:80px; width:80px; object-fit:contain;">';
-      } catch (e) {}
-    }
+function setAuthLoading(isLoading){
+  document.getElementById('auth-submit-btn').style.display = isLoading ? 'none' : 'block';
+  document.getElementById('auth-spinner').classList.toggle('show', isLoading);
+  document.getElementById('auth-code-input').disabled = isLoading;
+}
 
-    return (
-      '<td style="width:' + widthPct + '%; padding:5px; page-break-inside:avoid; height:100%; vertical-align:top;">' +
-      '<table class="award-card" style="width:100%;">' +
-      '<tr><td style="position:relative; padding:26px 16px 14px;">' +
+function showAuthError(msg){
+  var el = document.getElementById('auth-error');
+  el.textContent = msg || 'Невірний код доступу. Перевірте і спробуйте ще раз.';
+  el.classList.add('show');
+}
 
-      '<span style="position:absolute; top:10px; right:10px; display:inline-block; min-width:18px; background:' + STEP + '; color:#FFFFFF; font-size:11px; font-weight:bold; border-radius:3px; padding:4px 7px; text-align:center;">' + num + '</span>' +
+function hideAuthError(){
+  document.getElementById('auth-error').classList.remove('show');
+}
 
-      '<div style="font-size:10.5px; font-weight:bold; text-transform:uppercase; letter-spacing:0.04em; color:' + STEP + '; text-align:center; line-height:1.35; min-height:34px; margin-bottom:9px; padding:0 22px;">' + pluralizeCatName(item.cat) + '</div>' +
-
-      '<div style="text-align:center; margin-bottom:9px;">' + imgTag + '</div>' +
-
-      '<div style="font-size:16px; font-weight:bold; color:' + TEXT + '; text-align:center; min-height:76px; line-height:1.3; margin-bottom:9px;">' + awardName + '</div>' +
-
-      '<div style="border-top:1px solid ' + LINE + '; padding-top:6px;">' +
-      '<div style="font-size:13px; font-weight:bold; color:' + TEXT + '; white-space:nowrap; text-align:center; padding-bottom:6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="' + STEP + '" stroke-width="2.4" style="vertical-align:-2px; margin-right:7px;"><rect x="3" y="4.5" width="18" height="16.5" rx="2.5" fill="' + STEP + '" fill-opacity="0.12"/><path d="M16 2.5v4M8 2.5v4M3 10h18"/></svg>' + year + '</div>' +
-      '<div style="border-top:1px solid ' + LINE + '; padding-top:6px;">' +
-      '<div style="font-size:13px; color:' + TEXT + '; text-align:center; min-height:24px; line-height:1.3;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="' + STEP + '" stroke-width="2.2" style="vertical-align:-2px; margin-right:7px;"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" fill="' + STEP + '" fill-opacity="0.12"/><path d="M14 2v6h6"/></svg>' + orderInfo + '</div>' +
-      '</div>' +
-      '</div>' +
-
-      '</td></tr></table>' +
-      '</td>'
-    );
-  }
-
-  var cardsHtml = "";
-  for (var bi = 0; bi < flatAwards.length; bi += COLS) {
-    var itemsInRow = Math.min(COLS, flatAwards.length - bi);
-
-    cardsHtml += '<tr>';
-
-    if (itemsInRow < COLS) {
-      var innerWidthPct = itemsInRow * colWidth;
-      cardsHtml += '<td colspan="' + COLS + '" style="padding:0; text-align:center;">' +
-        '<table align="center" style="width:' + innerWidthPct + '%; border-collapse:collapse;"><tr>';
-      for (var bc = 0; bc < itemsInRow; bc++) {
-        cardsHtml += buildCardCellHtml(bi + bc, 100 / itemsInRow);
+function refreshAuthInBackground(code){
+  var url = API_BASE_URL + '?action=checkAccess&code=' + encodeURIComponent(code);
+  fetch(url)
+    .then(function(res){ return res.json(); })
+    .then(function(data){
+      if (data && data.ok) {
+        saveAuth(code, data.user, data.dataUpdatedAt);
+        showApp(data.user, data.dataUpdatedAt);
       }
-      cardsHtml += '</tr></table></td>';
-    } else {
-      for (var bc = 0; bc < itemsInRow; bc++) {
-        cardsHtml += buildCardCellHtml(bi + bc, colWidth);
-      }
-    }
-
-    cardsHtml += '</tr>';
-  }
-
-  function shieldLogoHeader(size) {
-    var h = Math.round(size * 1.15);
-    return '<svg viewBox="0 0 400 460" xmlns="http://www.w3.org/2000/svg" style="width:' + size + 'px; height:' + h + 'px; display:block;">' +
-      '<g fill="none" stroke="' + STEP + '" stroke-width="8" stroke-linejoin="round" stroke-linecap="round">' +
-      '<path d="M40 35H360V205C360 315 295 385 200 425C105 385 40 315 40 205Z"/>' +
-      '</g>' +
-      '<g fill="' + STEP + '" transform="translate(200 204.65) scale(1.375) translate(-200 -204.65)">' +
-      '<path d="M179.6 274.6h-61.2V119.1c23.5 10.6 35 34.2 35 71.2 0 12.9-1.3 27.1-4.4 49.9h33l-1.1-42.8c-.4-15.5-2.9-48.6-2.9-53.2 0-19.7 7.3-37.5 21.5-52.8 14.2 15.3 21.5 33 21.5 52.8 0 4.7-2.4 37.7-2.9 53.2l-1.1 42.8h33c-3.1-22.8-4.4-37-4.4-49.9 0-37 11.5-60.5 35-71.2v155.5h-61.2c-4.2 12.2-11.1 24.6-20 35.3-8.9-10.7-15.8-23.1-20-35.3Z"/>' +
-      '</g>' +
-      '</svg>';
-  }
-  function shieldLogoFooter(size) {
-    var h = Math.round(size * 1.15);
-    return '<svg viewBox="0 0 400 460" xmlns="http://www.w3.org/2000/svg" style="width:' + size + 'px; height:' + h + 'px; display:block;">' +
-      '<g fill="none" stroke="' + STEP + '" stroke-width="6" stroke-linejoin="round" stroke-linecap="round" opacity="0.65">' +
-      '<path d="M40 35H360V205C360 315 295 385 200 425C105 385 40 315 40 205Z"/>' +
-      '</g>' +
-      '<g fill="' + STEP + '" opacity="0.65" transform="translate(200 204.65) scale(1.375) translate(-200 -204.65)">' +
-      '<path d="M179.6 274.6h-61.2V119.1c23.5 10.6 35 34.2 35 71.2 0 12.9-1.3 27.1-4.4 49.9h33l-1.1-42.8c-.4-15.5-2.9-48.6-2.9-53.2 0-19.7 7.3-37.5 21.5-52.8 14.2 15.3 21.5 33 21.5 52.8 0 4.7-2.4 37.7-2.9 53.2l-1.1 42.8h33c-3.1-22.8-4.4-37-4.4-49.9 0-37 11.5-60.5 35-71.2v155.5h-61.2c-4.2 12.2-11.1 24.6-20 35.3-8.9-10.7-15.8-23.1-20-35.3Z"/>' +
-      '</g>' +
-      '</svg>';
-  }
-  var shieldLogoSvg = shieldLogoHeader(74);
-  var shieldLogoSmall = shieldLogoFooter(28);
-
-  var personIcon = '<svg viewBox="0 0 24 24" width="17" height="17" fill="' + STEP + '"><circle cx="12" cy="8" r="4.2"/><path d="M4 21.2c0-4.6 3.6-8.2 8-8.2s8 3.6 8 8.2v.8H4v-.8Z"/></svg>';
-  var calendarIcon = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="' + STEP + '" stroke-width="2.4"><rect x="3" y="4.5" width="18" height="16.5" rx="2.5" fill="' + STEP + '" fill-opacity="0.12"/><path d="M16 2.5v4M8 2.5v4M3 10h18"/></svg>';
-
-  var html =
-    '<html><head>' +
-    '<style>' +
-    '@page { margin:24px 26px; background-color:' + BG + '; }' +
-    'html, body { margin:0; background-color:' + BG + ' !important; }' +
-    '* { -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; color-adjust:exact !important; }' +
-    '* { font-family: Arial, Helvetica, sans-serif; box-sizing:border-box; }' +
-    '.award-card { background:' + CARD_BG + '; border:1px solid ' + LINE + '; border-radius:5px; border-collapse:separate; page-break-inside:avoid; height:100%; }' +
-    '.award-card td { height:100%; }' +
-    '</style>' +
-    '</head><body bgcolor="' + BG + '" style="padding:0; color:' + TEXT + '; position:relative; background-color:' + BG + ';">' +
-
-    '<table style="width:100%; margin-bottom:12px;">' +
-    '<tr>' +
-    '<td style="width:74px; vertical-align:middle;">' + shieldLogoSvg + '</td>' +
-    '<td style="width:1px; padding:0 17px;"><div style="border-left:1px solid ' + LINE + '; height:46px;"></div></td>' +
-    '<td style="vertical-align:middle;">' +
-    '<div style="font-size:18px; font-weight:800; color:' + TEXT + '; text-transform:uppercase;">57 окрема мотопіхотна бригада</div>' +
-    '<div style="font-size:12px; font-style:italic; color:' + TEXT_MUTED + '; margin-top:4px;">імені кошового отамана Костя Гордієнка</div>' +
-    '</td>' +
-    '</tr>' +
-    '</table>' +
-
-    '<div style="border-top:1px solid ' + LINE + '; margin-bottom:12px;"></div>' +
-
-    '<table style="width:100%; margin-bottom:12px;">' +
-    '<tr>' +
-    '<td style="vertical-align:middle;">' +
-    '<div style="font-size:25px; font-weight:bold; letter-spacing:0.01em; color:' + TEXT + '; text-transform:uppercase; line-height:1.15; margin-bottom:4px;">Індивідуальна<br>нагородна картка</div>' +
-    '<div style="font-size:11.5px; color:' + TEXT_MUTED + ';">Згідно з даними обліку нагород</div>' +
-    '</td>' +
-    '<td style="width:108px; text-align:right; vertical-align:middle;">' +
-    '<div style="border:1px solid ' + LINE + '; border-radius:5px; padding:8px 10px; text-align:center;">' +
-    '<div style="font-size:8px; color:' + TEXT_MUTED + '; text-transform:uppercase; letter-spacing:0.03em;">Всього нагород</div>' +
-    '<div style="font-size:24px; font-weight:bold; color:' + STEP + '; line-height:1.2;">' + total + '</div>' +
-    '</div>' +
-    '</td>' +
-    '</tr>' +
-    '</table>' +
-
-    '<table style="width:100%; border:1px solid ' + LINE + '; border-radius:5px; border-collapse:separate; margin-bottom:10px;">' +
-    '<tr>' +
-    '<td style="padding:8px 16px;">' +
-    '<div style="font-size:9.5px; color:' + TEXT_MUTED + '; letter-spacing:0.01em; margin-bottom:3px;">Прізвище, ім\'я, по батькові</div>' +
-    '<table><tr><td style="width:20px; vertical-align:middle;">' + personIcon + '</td><td style="font-size:15px; font-weight:bold; color:' + TEXT + '; text-transform:uppercase; vertical-align:middle; padding-left:2px;">' + fullName + '</td></tr></table>' +
-    '</td>' +
-    '<td style="padding:8px 16px; text-align:right; white-space:nowrap; vertical-align:top;">' +
-    '<div style="font-size:9.5px; color:' + TEXT_MUTED + '; letter-spacing:0.01em; margin-bottom:3px;">Дата формування</div>' +
-    '<table style="margin-left:auto;"><tr><td style="font-size:15px; font-weight:bold; color:' + TEXT + '; vertical-align:middle;">' + formDate + '</td><td style="width:20px; vertical-align:middle; padding-left:6px;">' + calendarIcon + '</td></tr></table>' +
-    '</td>' +
-    '</tr>' +
-    '</table>' +
-
-    '<table style="width:100%; border-collapse:collapse; margin-bottom:8px;">' + cardsHtml + '</table>' +
-
-    '<table style="width:100%; border:1px solid ' + LINE + '; border-radius:5px; border-collapse:separate;">' +
-    '<tr>' +
-    '<td style="width:36px; padding:9px 0 9px 12px; vertical-align:top;">' + shieldLogoSmall + '</td>' +
-    '<td style="padding:9px 14px 9px 8px;">' +
-    '<div style="font-size:9.5px; color:' + TEXT + '; line-height:1.4;">Цим документом підтверджується, що <b>' + fullName + '</b> за час військової служби ' + wasAwarded + ' ' + awardNoun + '.</div>' +
-    '</td>' +
-    '</tr>' +
-    '</table>' +
-
-    '<div style="font-size:7.5px; color:' + TEXT_MUTED + '; margin-top:6px; line-height:1.4;">* Картка сформована на підставі даних обліку нагород 57 ОМПБр та може містити нагороди, отримані під час проходження служби в інших військових частинах.</div>' +
-
-    '</body></html>';
-
-  var pdf = Utilities.newBlob(html, 'text/html').getAs('application/pdf');
-  pdf.setName("Картка_" + fullName + ".pdf");
-  return pdf;
-}
-
-// ==============================================================================
-// СТАТИСТИКА — ЗАГАЛЬНІ ДАНІ ДЛЯ ВСІХ ТРЬОХ ВКЛАДОК
-// ==============================================================================
-function handleStats(code, year) {
-  var user = findUserByCode(code);
-  if (!user) return { ok: false, error: "unauthorized" };
-
-  year = (year || "all").toString().trim();
-
-  logAction(user.id, "Статистика", year);
-
-  var data = SpreadsheetApp.openById(CONFIG.DATABASE_ID).getSheetByName("New").getDataRange().getValues();
-  var unitMap = getUnitsMap();
-
-  var total = 0;
-  var catTotals = {};
-  var yearStats = {};
-  var unitTotals = {};
-  var peopleMap = {};
-
-  for (var i = 1; i < data.length; i++) {
-    if (!data[i][3]) continue;
-    var rowYear = extractYear(data[i][1]);
-    if (year !== "all" && rowYear !== year) continue;
-
-    total++;
-
-    var cat = data[i][2] || "Інше";
-    catTotals[cat] = (catTotals[cat] || 0) + 1;
-
-    var rawUnit = data[i][4] ? data[i][4].toString().trim() : "";
-    var officialUnit = mapUnitName(unitMap, rawUnit);
-    if (officialUnit) unitTotals[officialUnit] = (unitTotals[officialUnit] || 0) + 1;
-
-    if (year === "all" && rowYear.match(/^\d{4}$/)) {
-      yearStats[rowYear] = (yearStats[rowYear] || 0) + 1;
-    }
-
-    var name = data[i][3].toString().trim();
-    if (!peopleMap[name]) peopleMap[name] = [];
-    peopleMap[name].push(data[i]);
-  }
-
-  var categories = Object.keys(catTotals)
-    .sort(function (a, b) { return getCategoryPriority(a) - getCategoryPriority(b); })
-    .map(function (c) { return { name: c, label: pluralizeReferenceCategory(c), count: catTotals[c] }; });
-
-  var trend = [];
-  if (year === "all") {
-    trend = Object.keys(yearStats).sort().map(function (y) { return { year: y, count: yearStats[y] }; });
-  }
-
-  var knownUnits = getKnownOfficialUnits(unitMap);
-  var unitTotalsKnown = {};
-  for (var uKey in unitTotals) {
-    if (knownUnits[uKey]) unitTotalsKnown[uKey] = unitTotals[uKey];
-  }
-
-  var unitsTop10 = Object.keys(unitTotalsKnown)
-    .map(function (u) { return { name: u, count: unitTotalsKnown[u] }; })
-    .sort(function (a, b) { return b.count - a.count; })
-    .slice(0, 10);
-
-  var unitsAll = Object.keys(unitTotalsKnown)
-    .map(function (u) { return { name: u, count: unitTotalsKnown[u] }; })
-    .sort(function (a, b) { return a.name.localeCompare(b.name, 'uk'); });
-
-  var peopleList = [];
-  for (var pname in peopleMap) {
-    var recs = peopleMap[pname];
-    var bestPriority = 999999;
-    for (var r = 0; r < recs.length; r++) {
-      var p = getCategoryPriority(recs[r][2] || "") * 1000 + getAwardPriority(recs[r][5] || "");
-      if (p < bestPriority) bestPriority = p;
-    }
-    peopleList.push({
-      name: pname,
-      count: recs.length,
-      bestPriority: bestPriority,
-      unit: mapUnitName(unitMap, getLatestUnit(recs))
-    });
-  }
-  var peopleTop10 = peopleList
-    .sort(function (a, b) {
-      if (b.count !== a.count) return b.count - a.count;
-      return a.bestPriority - b.bestPriority;
     })
-    .slice(0, 10)
-    .map(function (p) { return { name: p.name, count: p.count, unit: p.unit }; });
-
-  return {
-    ok: true,
-    year: year,
-    total: total,
-    categories: categories,
-    trend: trend,
-    unitsTop10: unitsTop10,
-    units: unitsAll,
-    peopleTop10: peopleTop10
-  };
+    .catch(function(){ /* офлайн — тихо лишаємо кешовані дані без помилки */ });
 }
 
-// ==============================================================================
-// СТАТИСТИКА — ДЕТАЛІ ПІДРОЗДІЛУ
-// ==============================================================================
-function handleStatsUnitDetail(code, unit, year) {
-  var user = findUserByCode(code);
-  if (!user) return { ok: false, error: "unauthorized" };
-  if (!unit) return { ok: false, error: "no_unit" };
+function checkAccessCode(code){
+  hideAuthError();
+  setAuthLoading(true);
 
-  year = (year || "all").toString().trim();
-  unit = unit.toString().trim();
+  var url = API_BASE_URL + '?action=checkAccess&code=' + encodeURIComponent(code);
 
-  var data = SpreadsheetApp.openById(CONFIG.DATABASE_ID).getSheetByName("New").getDataRange().getValues();
-  var unitMap = getUnitsMap();
-
-  var total = 0;
-  var catTotals = {};
-  var yearStats = {};
-
-  for (var i = 1; i < data.length; i++) {
-    if (!data[i][3]) continue;
-    var rowYear = extractYear(data[i][1]);
-    if (year !== "all" && rowYear !== year) continue;
-
-    var officialUnit = mapUnitName(unitMap, data[i][4] ? data[i][4].toString().trim() : "");
-    if (officialUnit !== unit) continue;
-
-    total++;
-    var cat = data[i][2] || "Інше";
-    catTotals[cat] = (catTotals[cat] || 0) + 1;
-
-    if (year === "all" && rowYear.match(/^\d{4}$/)) {
-      yearStats[rowYear] = (yearStats[rowYear] || 0) + 1;
-    }
-  }
-
-  if (total === 0) return { ok: false, error: "not_found" };
-
-  var categories = Object.keys(catTotals)
-    .sort(function (a, b) { return getCategoryPriority(a) - getCategoryPriority(b); })
-    .map(function (c) { return { name: c, label: pluralizeReferenceCategory(c), count: catTotals[c] }; });
-
-  var trend = [];
-  if (year === "all") {
-    trend = Object.keys(yearStats).sort().map(function (y) { return { year: y, count: yearStats[y] }; });
-  }
-
-  return { ok: true, unit: unit, year: year, total: total, categories: categories, trend: trend };
-}
-
-// ==============================================================================
-// СТАТИСТИКА — СПІЛЬНІ ХЕЛПЕРИ ДЛЯ PDF-ЗВІТІВ
-// ==============================================================================
-function computeStatsAggregates(data, unitMap, unitFilter, year) {
-  var total = 0;
-  var catTotals = {};
-  var groupedAwards = {};
-  var yearStats = {};
-
-  for (var i = 1; i < data.length; i++) {
-    if (!data[i][3]) continue;
-    var rowYear = extractYear(data[i][1]);
-    if (year !== "all" && rowYear !== year) continue;
-
-    if (unitFilter) {
-      var officialUnit = mapUnitName(unitMap, data[i][4] ? data[i][4].toString().trim() : "");
-      if (officialUnit !== unitFilter) continue;
-    }
-
-    total++;
-    var cat = data[i][2] || "Інше";
-    catTotals[cat] = (catTotals[cat] || 0) + 1;
-
-    if (!groupedAwards[cat]) groupedAwards[cat] = {};
-    var awardName = data[i][5] ? data[i][5].toString().trim() : "Назва відсутня";
-    groupedAwards[cat][awardName] = (groupedAwards[cat][awardName] || 0) + 1;
-
-    if (year === "all" && rowYear.match(/^\d{4}$/)) {
-      yearStats[rowYear] = (yearStats[rowYear] || 0) + 1;
-    }
-  }
-
-  return { total: total, catTotals: catTotals, groupedAwards: groupedAwards, yearStats: yearStats };
-}
-
-function buildStatsPdfBlob(label, year, agg) {
-  var sortedStats = Object.keys(agg.catTotals)
-    .map(function (k) { return { n: k, v: agg.catTotals[k] }; })
-    .sort(function (a, b) { return b.v - a.v; });
-  var maxVal = Math.max.apply(null, sortedStats.map(function (s) { return s.v; }));
-
-  var chartConfig = {
-    type: 'horizontalBar',
-    data: {
-      labels: sortedStats.map(function (s) { return pluralizeReferenceCategory(s.n); }),
-      datasets: [{
-        data: sortedStats.map(function (s) { return s.v; }),
-        backgroundColor: PDF_GOLD
-      }]
-    },
-    options: {
-      legend: { display: false },
-      layout: { padding: { right: 50 } },
-      scales: {
-        xAxes: [{ gridLines: { color: PDF_LINE }, ticks: { beginAtZero: true, fontColor: PDF_TEXT, fontSize: 11, fontStyle: 'bold', suggestedMax: maxVal * 1.2 } }],
-        yAxes: [{ gridLines: { display: false }, ticks: { fontColor: PDF_TEXT, fontSize: 11, fontStyle: 'bold' } }]
-      },
-      plugins: {
-        datalabels: { anchor: 'end', align: 'right', display: true, color: PDF_TEXT, font: { weight: 'bold', size: 12 }, offset: 5 }
+  fetch(url)
+    .then(function(res){ return res.json(); })
+    .then(function(data){
+      setAuthLoading(false);
+      if (data && data.ok) {
+        saveAuth(code, data.user, data.dataUpdatedAt);
+        document.getElementById('auth-gate').classList.add('hidden');
+        if (!isAppLockEnabled()) {
+          showForcedPinSetup(data.user, data.dataUpdatedAt);
+        } else {
+          showApp(data.user, data.dataUpdatedAt);
+        }
+      } else {
+        showAuthError();
       }
-    },
-    plugins: ['datalabels']
-  };
-
-  var chartResp = UrlFetchApp.fetch("https://quickchart.io/chart", {
-    method: "post",
-    contentType: "application/json",
-    payload: JSON.stringify({ chart: chartConfig, width: 600, height: 300, backgroundColor: PDF_BG })
-  });
-  var chartBase64 = Utilities.base64Encode(chartResp.getBlob().getBytes());
-
-  var chartYearsBase64 = "";
-  if (year === "all") {
-    var sortedYears = Object.keys(agg.yearStats).sort();
-    var chartConfigYears = {
-      type: 'line',
-      data: {
-        labels: sortedYears,
-        datasets: [{
-          data: sortedYears.map(function (y) { return agg.yearStats[y]; }),
-          fill: true, borderColor: PDF_STEP, backgroundColor: "rgba(243,146,0,0.15)",
-          borderWidth: 3, tension: 0.3, pointRadius: 5, pointBackgroundColor: PDF_GOLD,
-          pointBorderColor: PDF_STEP, pointBorderWidth: 2
-        }]
-      },
-      options: {
-        title: { display: true, text: "Динаміка нагородження по роках", fontSize: 14, fontStyle: 'bold', fontColor: PDF_TEXT, padding: 25 },
-        legend: { display: false },
-        scales: {
-          xAxes: [{ gridLines: { display: false }, ticks: { fontColor: PDF_TEXT } }],
-          yAxes: [{ gridLines: { color: PDF_LINE }, ticks: { beginAtZero: true, precision: 0, fontColor: PDF_TEXT } }]
-        },
-        plugins: { datalabels: { align: 'top', anchor: 'end', color: PDF_TEXT, font: { weight: 'bold', size: 12 }, formatter: function (v) { return v; } } }
-      },
-      plugins: ['datalabels']
-    };
-    var respYears = UrlFetchApp.fetch("https://quickchart.io/chart", {
-      method: "post", contentType: "application/json",
-      payload: JSON.stringify({ chart: chartConfigYears, width: 600, height: 300, backgroundColor: PDF_BG })
+    })
+    .catch(function(err){
+      setAuthLoading(false);
+      showAuthError('Немає з\'єднання з сервером. Перевірте інтернет і спробуйте ще раз.');
     });
-    chartYearsBase64 = Utilities.base64Encode(respYears.getBlob().getBytes());
-  }
-
-  var tablesHtml = "";
-  var sortedCats = Object.keys(agg.groupedAwards).sort(function (a, b) { return getCategoryPriority(a) - getCategoryPriority(b); });
-  for (var ci = 0; ci < sortedCats.length; ci++) {
-    var cat = sortedCats[ci];
-    var awardKeys = Object.keys(agg.groupedAwards[cat]).sort(function (a, b) { return getAwardPriority(a) - getAwardPriority(b); });
-    tablesHtml +=
-      '<div style="margin-bottom:10px; border:1px solid ' + PDF_LINE + '; border-radius:5px; overflow:hidden;">' +
-      '<table style="width:100%; border-collapse:collapse;">' +
-      '<tr style="background:' + PDF_CARD_BG + ';">' +
-      '<td style="padding:6px 10px; font-weight:bold; font-size:11px; color:' + PDF_STEP + '; text-transform:uppercase; letter-spacing:.03em;">' + pluralizeReferenceCategory(cat) + '</td>' +
-      '<td style="padding:6px 10px; width:50px; text-align:center; font-weight:bold; font-size:11px; color:' + PDF_TEXT + ';">' + agg.catTotals[cat] + '</td></tr>';
-    for (var ai = 0; ai < awardKeys.length; ai++) {
-      tablesHtml += '<tr><td style="padding:4px 10px; color:' + PDF_TEXT + '; font-size:11px; border-top:1px solid ' + PDF_LINE + ';">' + awardKeys[ai] + '</td>' +
-        '<td style="padding:4px 10px; text-align:center; width:50px; color:' + PDF_TEXT + '; font-size:11px; font-weight:bold; border-top:1px solid ' + PDF_LINE + ';">' + agg.groupedAwards[cat][awardKeys[ai]] + '</td></tr>';
-    }
-    tablesHtml += '</table></div>';
-  }
-
-  var chartsHtml = "";
-  if (year === "all") {
-    chartsHtml = '<table style="width:100%; margin-bottom:14px;"><tr>' +
-      '<td style="text-align:center; width:50%;"><img src="data:image/png;base64,' + chartBase64 + '" width="300"></td>' +
-      '<td style="text-align:center; width:50%;"><img src="data:image/png;base64,' + chartYearsBase64 + '" width="300"></td>' +
-      '</tr></table>';
-  } else {
-    chartsHtml = '<div style="text-align:center; margin-bottom:14px;"><img src="data:image/png;base64,' + chartBase64 + '" width="500"></div>';
-  }
-
-  var shieldLogoSvg = pdfShieldLogo(74, false);
-  var shieldLogoSmall = pdfShieldLogo(36, false);
-  var periodLabel = year === "all" ? "За весь час" : year + " рік";
-  var formDate = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd.MM.yyyy");
-  var calendarIcon =
-    '<svg viewBox="0 0 1254 1254" width="36" height="36" xmlns="http://www.w3.org/2000/svg">' +
-    '<g transform="translate(0,1254) scale(0.1,-0.1)" fill="' + PDF_STEP + '" stroke="none">' +
-    '<path d="M4490 10176 c-114 -31 -209 -105 -264 -205 -49 -90 -56 -137 -56 -363 l0 -206 -377 -4 c-346 -4 -385 -6 -454 -25 -268 -74 -460 -264 -546 -538 l-28 -90 0 -2670 0 -2670 21 -80 c74 -277 279 -491 549 -572 57 -17 198 -18 2900 -21 3185 -3 2919 -9 3090 72 216 102 356 271 428 516 l22 75 3 2620 c2 1804 -1 2645 -8 2701 -41 318 -251 563 -560 655 -70 21 -99 22 -447 26 l-373 5 0 208 c0 176 -3 218 -19 269 -27 86 -61 140 -130 204 -84 77 -146 100 -277 101 -96 1 -103 0 -176 -37 -92 -45 -157 -112 -202 -207 -30 -63 -31 -70 -34 -220 -1 -85 -3 -191 -5 -235 l-2 -80 -1267 -3 -1268 -2 0 214 c0 185 -3 223 -20 278 -65 210 -294 340 -500 284z m185 -846 c46 -18 101 -70 125 -116 25 -48 25 -53 25 -289 0 -226 -1 -242 -21 -280 -47 -87 -122 -134 -212 -135 -93 0 -168 48 -208 135 -23 48 -24 60 -24 283 0 213 2 236 20 275 54 114 184 170 295 127z m3396 -11 c43 -21 96 -80 115 -125 18 -43 20 -467 2 -525 -15 -53 -68 -112 -123 -138 -128 -60 -279 12 -320 154 -25 84 -18 465 9 515 68 129 200 179 317 119z m1114 -3619 c0 -2096 -1 -2156 -19 -2204 -22 -58 -83 -128 -140 -161 -23 -13 -68 -28 -101 -35 -44 -8 -777 -10 -2695 -8 l-2635 3 -56 26 c-71 33 -125 87 -158 158 l-26 56 -3 2150 c-1 1182 0 2156 3 2163 3 10 591 12 2917 10 l2913 -3 0 -2155z"/>' +
-    '<path d="M4474 7065 c-41 -28 -45 -58 -42 -323 3 -246 3 -252 26 -274 22 -23 27 -23 292 -26 l269 -3 33 30 33 29 0 259 c-1 277 -4 295 -51 313 -14 6 -141 10 -282 10 -210 0 -261 -3 -278 -15z"/>' +
-    '<path d="M5963 7056 l-28 -24 0 -271 c0 -268 0 -271 23 -293 22 -23 27 -23 291 -26 l268 -3 32 26 31 27 0 269 0 270 -25 24 -24 25 -270 0 -270 0 -28 -24z"/>' +
-    '<path d="M7443 7070 c-40 -16 -43 -38 -43 -312 1 -276 2 -282 47 -306 27 -15 509 -17 547 -2 53 20 57 47 54 326 l-3 256 -28 24 -28 24 -262 -1 c-144 0 -272 -4 -284 -9z"/>' +
-    '<path d="M4477 5889 c-42 -25 -47 -56 -47 -309 0 -265 4 -287 58 -309 20 -9 103 -11 285 -9 l257 3 27 28 28 28 0 257 c-1 276 -4 294 -51 312 -34 13 -534 12 -557 -1z"/>' +
-    '<path d="M5963 5876 l-28 -24 -3 -244 c-2 -133 0 -258 3 -276 4 -23 16 -39 38 -53 30 -18 48 -19 295 -17 l264 3 24 28 24 28 0 265 0 265 -25 24 -24 25 -270 0 -270 0 -28 -24z"/>' +
-    '<path d="M7425 5874 l-25 -27 0 -267 0 -267 26 -24 c26 -24 26 -24 282 -27 181 -2 264 0 284 9 54 22 58 44 58 319 l0 252 -29 29 -29 29 -272 0 -271 0 -24 -26z"/>' +
-    '<path d="M4483 4710 c-49 -20 -54 -50 -51 -326 l3 -256 28 -24 28 -24 270 0 270 0 24 24 c16 16 25 40 30 77 8 66 0 467 -10 492 -17 42 -50 47 -317 46 -139 0 -263 -4 -275 -9z"/>' +
-    '<path d="M5980 4707 c-48 -24 -50 -43 -48 -320 l3 -259 28 -24 28 -24 260 0 c272 0 307 5 323 45 3 9 6 135 6 280 l0 263 -31 26 -31 26 -256 0 c-186 0 -264 -4 -282 -13z"/>' +
-    '</g></svg>';
-
-  var footerHtml =
-    '<table style="width:100%; border:1px solid ' + PDF_LINE + '; border-radius:6px; border-collapse:separate; margin-top:14px; page-break-inside:avoid; page-break-before:avoid;">' +
-    '<tr>' +
-    '<td style="width:58%; padding:12px 14px; border-right:1px solid ' + PDF_LINE + '; vertical-align:top;">' +
-    '<table style="width:100%; border-collapse:collapse;"><tr>' +
-    '<td style="width:44px; vertical-align:top;">' + shieldLogoSmall + '</td>' +
-    '<td style="vertical-align:top; padding-left:8px;">' +
-    '<div style="font-size:13px; font-weight:bold; color:' + PDF_TEXT + ';">57 ОМПБр</div>' +
-    '<div style="font-size:10px; color:' + PDF_TEXT_MUTED + '; margin-top:2px; line-height:1.4;">Статистика сформована на підставі даних обліку нагород<br>57 окремої мотопіхотної бригади.</div>' +
-    '</td>' +
-    '</tr></table>' +
-    '</td>' +
-    '<td style="width:42%; padding:12px 14px; vertical-align:top;">' +
-    '<table style="width:100%; border-collapse:collapse;"><tr>' +
-    '<td style="width:44px; vertical-align:top;">' + calendarIcon + '</td>' +
-    '<td style="vertical-align:top; padding-left:8px;">' +
-    '<div style="font-size:10px; color:' + PDF_TEXT_MUTED + ';">Звіт сформовано:</div>' +
-    '<div style="font-size:13px; font-weight:bold; color:' + PDF_TEXT + ';">' + formDate + '</div>' +
-    '<div style="font-size:9px; color:' + PDF_TEXT_MUTED + '; margin-top:2px;">Дані актуальні станом на дату формування звіту.</div>' +
-    '</td>' +
-    '</tr></table>' +
-    '</td>' +
-    '</tr></table>';
-
-  var html =
-    '<html><head><style>' +
-    '@page { margin-top:24px; margin-bottom:24px; margin-left:26px; margin-right:26px; background-color:' + PDF_BG + '; }' +
-    'html, body { margin:0; background-color:' + PDF_BG + ' !important; }' +
-    '* { -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; color-adjust:exact !important; }' +
-    '* { font-family: Arial, Helvetica, sans-serif; box-sizing:border-box; }' +
-    '</style></head>' +
-    '<body bgcolor="' + PDF_BG + '" style="padding:24px 26px; color:' + PDF_TEXT + '; background-color:' + PDF_BG + ';">' +
-
-    '<table style="width:100%; border-bottom:3px solid ' + PDF_LINE + '; padding-bottom:12px; margin-bottom:16px;">' +
-    '<tr>' +
-    '<td style="width:74px;">' + shieldLogoSvg + '</td>' +
-    '<td style="width:1px; padding:0 17px;"><div style="border-left:1px solid ' + PDF_LINE + '; height:46px;"></div></td>' +
-    '<td>' +
-    '<div style="font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:' + PDF_TEXT_MUTED + '; margin-bottom:2px;">Статистичний звіт</div>' +
-    '<div style="font-size:19px; font-weight:800; color:' + PDF_TEXT + ';">' + label + '</div>' +
-    '<div style="font-size:10px; color:' + PDF_TEXT_MUTED + '; margin-top:2px;">Згідно з даними обліку нагород | ' + periodLabel + '</div>' +
-    '</td>' +
-    '<td style="width:130px; text-align:right;">' +
-    '<div style="border:1px solid ' + PDF_LINE + '; border-radius:6px; padding:6px 10px; text-align:center;">' +
-    '<div style="font-size:8px; color:' + PDF_TEXT_MUTED + '; text-transform:uppercase; letter-spacing:.03em;">Всього нагород</div>' +
-    '<div style="font-size:26px; font-weight:bold; color:' + PDF_STEP + '; line-height:1.2;">' + agg.total + '</div>' +
-    '</div>' +
-    '</td>' +
-    '</tr></table>' +
-
-    chartsHtml + tablesHtml + footerHtml +
-
-    '</body></html>';
-
-  return Utilities.newBlob(html, 'text/html').getAs('application/pdf');
 }
 
-function handleStatsUnitPdf(code, unit, year) {
-  var user = findUserByCode(code);
-  if (!user) return { ok: false, error: "unauthorized" };
-  if (!unit) return { ok: false, error: "no_unit" };
+// ---------- Примусове встановлення PIN одразу після першого входу за кодом ----------
+var pendingForcedUser = null;
+var pendingForcedDataUpdatedAt = null;
 
-  year = (year || "all").toString().trim();
-  unit = unit.toString().trim();
-
-  try {
-    var data = SpreadsheetApp.openById(CONFIG.DATABASE_ID).getSheetByName("New").getDataRange().getValues();
-    var unitMap = getUnitsMap();
-
-    var agg = computeStatsAggregates(data, unitMap, unit, year);
-    if (agg.total === 0) return { ok: false, error: "not_found" };
-
-    var pdf = buildStatsPdfBlob(unit, year, agg);
-    var filename = "Zvit_" + unit.replace(/\s+/g, '_') + "_" + year + ".pdf";
-    pdf.setName(filename);
-
-    return { ok: true, filename: filename, pdfBase64: Utilities.base64Encode(pdf.getBytes()) };
-  } catch (e) {
-    return { ok: false, error: e.toString() };
-  }
+function showForcedPinSetup(user, dataUpdatedAt){
+  pendingForcedUser = user;
+  pendingForcedDataUpdatedAt = dataUpdatedAt;
+  document.getElementById('forced-pin-1').value = '';
+  document.getElementById('forced-pin-2').value = '';
+  document.getElementById('forced-pin-error').classList.remove('show');
+  document.getElementById('forced-pin-gate').classList.add('show');
 }
 
-// ==============================================================================
-// СТАТИСТИКА — PDF-ЗВІТ ПО ВСІЙ БРИГАДІ
-// ==============================================================================
-function handleStatsGeneralPdf(code, year) {
-  var user = findUserByCode(code);
-  if (!user) return { ok: false, error: "unauthorized" };
+async function saveForcedPinSetup(){
+  var pin1 = document.getElementById('forced-pin-1').value.trim();
+  var pin2 = document.getElementById('forced-pin-2').value.trim();
+  var errEl = document.getElementById('forced-pin-error');
 
-  year = (year || "all").toString().trim();
-
-  try {
-    var data = SpreadsheetApp.openById(CONFIG.DATABASE_ID).getSheetByName("New").getDataRange().getValues();
-    var unitMap = getUnitsMap();
-
-    var agg = computeStatsAggregates(data, unitMap, null, year);
-    if (agg.total === 0) return { ok: false, error: "not_found" };
-
-    var pdf = buildStatsPdfBlob("Загальна статистика", year, agg);
-    var filename = "Zvit_Zagalna_" + year + ".pdf";
-    pdf.setName(filename);
-
-    return { ok: true, filename: filename, pdfBase64: Utilities.base64Encode(pdf.getBytes()) };
-  } catch (e) {
-    return { ok: false, error: e.toString() };
+  if (!/^\d{4,6}$/.test(pin1)) {
+    errEl.textContent = 'PIN має складатись із 4-6 цифр.';
+    errEl.classList.add('show');
+    return;
   }
-}
-
-// ==============================================================================
-// СТАТИСТИКА — СПІЛЬНІ ХЕЛПЕРИ ДЛЯ XLSX-СПИСКІВ
-// ==============================================================================
-function computeStatsRows(data, unitMap, unitFilter, year) {
-  var rows = [];
-  for (var i = 1; i < data.length; i++) {
-    if (!data[i][3]) continue;
-    var rowYear = extractYear(data[i][1]);
-    var rawUnit = data[i][4] ? data[i][4].toString().trim() : "";
-
-    if (unitFilter) {
-      var officialUnit = mapUnitName(unitMap, rawUnit);
-      if (officialUnit !== unitFilter) continue;
-    }
-    if (year !== "all" && rowYear !== year) continue;
-
-    rows.push([rowYear, data[i][3], rawUnit, data[i][2], data[i][5], data[i][6]]);
-  }
-  rows.sort(function (a, b) { return parseInt(a[0]) - parseInt(b[0]); });
-  return rows;
-}
-
-function buildStatsXlsxBlob(tempName, rows) {
-  var tempSS = null;
-  try {
-    tempSS = SpreadsheetApp.create(tempName);
-    var sheet = tempSS.getSheets()[0];
-    sheet.appendRow(["Рік", "ПІБ", "Підрозділ", "Категорія нагороди", "Назва нагороди", "№ дата наказу"]);
-
-    if (rows.length > 0) sheet.getRange(2, 3, rows.length, 1).setNumberFormat("@");
-    sheet.getRange(2, 1, rows.length, 6).setValues(rows);
-
-    var headerRange = sheet.getRange(1, 1, 1, 6);
-    headerRange.setFontWeight("bold").setBackground(PDF_CARD_BG).setFontColor(PDF_STEP).setHorizontalAlignment("center");
-
-    var dataRange = sheet.getRange(2, 1, rows.length, 6);
-    dataRange.setHorizontalAlignment("center").setVerticalAlignment("middle");
-    sheet.getRange(2, 2, rows.length, 1).setHorizontalAlignment("left");
-
-    var fullRange = sheet.getRange(1, 1, rows.length + 1, 6);
-    fullRange.setBorder(true, true, true, true, true, true, PDF_LINE, SpreadsheetApp.BorderStyle.SOLID);
-
-    try { dataRange.applyRowBanding(SpreadsheetApp.BandingTheme.LIGHT_GREY, false, false); } catch (e) {}
-
-    sheet.setFrozenRows(1);
-    fullRange.createFilter();
-
-    sheet.setColumnWidth(1, 73);
-    sheet.setColumnWidth(2, 345);
-    sheet.setColumnWidth(3, 139);
-    sheet.setColumnWidth(4, 288);
-    sheet.setColumnWidth(5, 603);
-    sheet.setColumnWidth(6, 471);
-    SpreadsheetApp.flush();
-
-    var fileId = tempSS.getId();
-    var url = "https://docs.google.com/spreadsheets/d/" + fileId + "/export?format=xlsx";
-    var token_auth = ScriptApp.getOAuthToken();
-    var response = UrlFetchApp.fetch(url, { headers: { 'Authorization': 'Bearer ' + token_auth } });
-    return response.getBlob();
-  } finally {
-    if (tempSS) {
-      try { DriveApp.getFileById(tempSS.getId()).setTrashed(true); } catch (e) {}
-    }
-  }
-}
-
-function handleStatsUnitXlsx(code, unit, year) {
-  var user = findUserByCode(code);
-  if (!user) return { ok: false, error: "unauthorized" };
-  if (!unit) return { ok: false, error: "no_unit" };
-
-  year = (year || "all").toString().trim();
-  unit = unit.toString().trim();
-
-  try {
-    var unitMap = getUnitsMap();
-    var data = SpreadsheetApp.openById(CONFIG.DATABASE_ID).getSheetByName("New").getDataRange().getValues();
-    var rows = computeStatsRows(data, unitMap, unit, year);
-    if (rows.length === 0) return { ok: false, error: "not_found" };
-
-    var blob = buildStatsXlsxBlob("Report_" + unit + "_" + year, rows);
-    var filename = "Список_" + unit.replace(/\s+/g, '_') + "_" + year + ".xlsx";
-    return { ok: true, filename: filename, xlsxBase64: Utilities.base64Encode(blob.getBytes()) };
-  } catch (e) {
-    return { ok: false, error: e.toString() };
-  }
-}
-
-// ==============================================================================
-// СТАТИСТИКА — XLSX-СПИСОК ПО ВСІЙ БРИГАДІ
-// ==============================================================================
-function handleStatsGeneralXlsx(code, year) {
-  var user = findUserByCode(code);
-  if (!user) return { ok: false, error: "unauthorized" };
-
-  year = (year || "all").toString().trim();
-
-  try {
-    var unitMap = getUnitsMap();
-    var data = SpreadsheetApp.openById(CONFIG.DATABASE_ID).getSheetByName("New").getDataRange().getValues();
-    var rows = computeStatsRows(data, unitMap, null, year);
-    if (rows.length === 0) return { ok: false, error: "not_found" };
-
-    var blob = buildStatsXlsxBlob("Report_Zagalna_" + year, rows);
-    var filename = "Список_Загальна_" + year + ".xlsx";
-    return { ok: true, filename: filename, xlsxBase64: Utilities.base64Encode(blob.getBytes()) };
-  } catch (e) {
-    return { ok: false, error: e.toString() };
-  }
-}
-
-// ==============================================================================
-// ОДНОРАЗОВА ФУНКЦІЯ: перевірка доступу до Google Drive
-// ==============================================================================
-function testDriveAccess() {
-  var logo = DriveApp.getFileById(CONFIG.MAIN_LOGO_ID);
-  Logger.log("Лого знайдено: " + logo.getName());
-
-  var awardsSheet = SpreadsheetApp.openById(CONFIG.MAIN_SETTINGS_ID)
-    .getSheetByName("Нагородна картка")
-    .getDataRange().getValues();
-
-  var checked = 0;
-  for (var i = 1; i < awardsSheet.length && checked < 3; i++) {
-    var imgId = awardsSheet[i][1];
-    if (!imgId) continue;
-    try {
-      var f = DriveApp.getFileById(imgId);
-      Logger.log("Стрічка «" + awardsSheet[i][0] + "» знайдена: " + f.getName());
-      checked++;
-    } catch (e) {
-      Logger.log("Помилка для «" + awardsSheet[i][0] + "»: " + e.toString());
-    }
-  }
-
-  Logger.log("Готово. Якщо тут не було червоних помилок — доступ до Диска працює.");
-}
-
-// ==============================================================================
-// ОДНОРАЗОВА ФУНКЦІЯ: генерує коди доступу для всіх, у кого їх ще немає
-// ==============================================================================
-function generateMissingAccessCodes() {
-  var usersSheet = SpreadsheetApp.openById(CONFIG.MAIN_SETTINGS_ID).getSheetByName("Allowed_Users");
-  var usersData = usersSheet.getDataRange().getValues();
-
-  var codesSheet = getPwaCodesSheet();
-  var codesData = codesSheet.getDataRange().getValues();
-
-  var codeByTelegramId = {};
-  var existingCodes = {};
-  for (var c = 1; c < codesData.length; c++) {
-    var idVal = codesData[c][0];
-    var codeVal = codesData[c][1] ? codesData[c][1].toString().trim().toUpperCase() : "";
-    if (idVal && codeVal) {
-      codeByTelegramId[String(idVal)] = codeVal;
-      existingCodes[codeVal] = true;
-    }
-  }
-
-  var newCodeRows = [];
-  var newCodesCount = 0;
-  var linkRows = [];
-
-  for (var j = 1; j < usersData.length; j++) {
-    var telegramId = usersData[j][0];
-    if (!telegramId) continue;
-
-    var code = codeByTelegramId[String(telegramId)];
-    if (!code) {
-      do {
-        code = generateRandomCode(8);
-      } while (existingCodes[code]);
-      existingCodes[code] = true;
-      codeByTelegramId[String(telegramId)] = code;
-      newCodeRows.push([telegramId, code]);
-      newCodesCount++;
-    }
-
-    linkRows.push([
-      telegramId,
-      usersData[j][2] || "",
-      usersData[j][3] || "",
-      code,
-      PWA_BASE_URL + "?code=" + code
-    ]);
-  }
-
-  if (newCodeRows.length > 0) {
-    codesSheet.getRange(codesSheet.getLastRow() + 1, 1, newCodeRows.length, 2).setValues(newCodeRows);
-  }
-
-  var linksSheet = SpreadsheetApp.openById(CONFIG.PWA_CODES_ID).getSheetByName("PWA_Invite_Links");
-  if (!linksSheet) {
-    linksSheet = SpreadsheetApp.openById(CONFIG.PWA_CODES_ID).insertSheet("PWA_Invite_Links");
-    linksSheet.appendRow(["ID (Telegram)", "ПІБ", "Підрозділ", "Код доступу", "Персональне посилання"]);
-    linksSheet.getRange(1, 1, 1, 5).setFontWeight("bold").setBackground("#f3f3f3");
-  } else {
-    var lastRow = linksSheet.getLastRow();
-    if (lastRow > 1) linksSheet.getRange(2, 1, lastRow - 1, 5).clearContent();
-  }
-
-  if (linkRows.length > 0) {
-    linksSheet.getRange(2, 1, linkRows.length, 5).setValues(linkRows);
-    linksSheet.autoResizeColumns(1, 5);
-  }
-
-  Logger.log("Готово! Нових кодів згенеровано: " + newCodesCount + ".");
-  Logger.log("Повний список посилань — у вкладці PWA_Invite_Links файлу PWA_CODES_ID.");
-}
-
-function generateRandomCode(length) {
-  var chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
-  var code = "";
-  for (var i = 0; i < length; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return code;
-}
-
-// ==============================================================================
-// РУЧНЕ ДОДАВАННЯ НОВОГО КОРИСТУВАЧА (лишається як резервний спосіб)
-// ==============================================================================
-function addUser(fullName, unit) {
-  if (!fullName || !fullName.toString().trim()) {
-    Logger.log("Помилка: вкажіть ПІБ.");
+  if (pin1 !== pin2) {
+    errEl.textContent = 'PIN-коди не співпадають.';
+    errEl.classList.add('show');
     return;
   }
 
-  var usersSheet = SpreadsheetApp.openById(CONFIG.MAIN_SETTINGS_ID).getSheetByName("Allowed_Users");
-  var usersData = usersSheet.getDataRange().getValues();
+  var hash = await sha256Hex(pin1);
+  localStorage.setItem(LOCK_PIN_HASH_KEY, hash);
+  localStorage.setItem(LOCK_PIN_LENGTH_KEY, String(pin1.length));
+  localStorage.setItem(LOCK_ENABLED_KEY, '1');
 
-  var newId = "M" + Date.now();
-
-  usersSheet.appendRow([newId, "ТАК", fullName.toString().trim(), (unit || "").toString().trim(), "", ""]);
-
-  var codesSheet = getPwaCodesSheet();
-  var codesData = codesSheet.getDataRange().getValues();
-  var existingCodes = {};
-  for (var c = 1; c < codesData.length; c++) {
-    var v = codesData[c][1] ? codesData[c][1].toString().trim().toUpperCase() : "";
-    if (v) existingCodes[v] = true;
-  }
-
-  var code;
-  do {
-    code = generateRandomCode(8);
-  } while (existingCodes[code]);
-
-  codesSheet.appendRow([newId, code]);
-
-  var link = PWA_BASE_URL + "?code=" + code;
-  Logger.log("Готово! " + fullName + " (" + (unit || "без підрозділу") + ")");
-  Logger.log("Персональне посилання: " + link);
-
-  return { id: newId, code: code, link: link };
+  document.getElementById('forced-pin-gate').classList.remove('show');
+  showApp(pendingForcedUser, pendingForcedDataUpdatedAt);
+  pendingForcedUser = null;
+  pendingForcedDataUpdatedAt = null;
 }
 
-function addUserExample() {
-  addUser("Прізвище Ім'я По-батькові", "Назва підрозділу");
+function submitAuthCode(){
+  var code = document.getElementById('auth-code-input').value.trim();
+  if (!code) {
+    showAuthError('Введіть код доступу.');
+    return;
+  }
+  checkAccessCode(code);
 }
 
+document.getElementById('auth-code-input').addEventListener('keydown', function(e){
+  if (e.key === 'Enter') submitAuthCode();
+});
+
 // ==============================================================================
-// ОДНОРАЗОВА ФУНКЦІЯ: відкриває доступ до всіх зображень нагород
+// ЛОКАЛЬНИЙ ЗАМОК ЗАСТОСУНКУ (PIN-код) — додатковий шар захисту ПОВЕРХ коду
+// доступу, суто на пристрої. Не чіпає й не замінює авторизацію на сервері:
+// код доступу як був, так і лишається єдиним джерелом правди щодо того,
+// хто ти є в системі. Це лише локальний "замок на телефон", щоб хтось
+// сторонній, взявши в руки вже залогінений пристрій, не міг одразу
+// гортати нагороди/статистику.
 // ==============================================================================
-function prepareAwardImagesAccess() {
-  var sheet = SpreadsheetApp.openById(CONFIG.MAIN_SETTINGS_ID).getSheetByName("Нагородна картка");
-  if (!sheet) {
-    throw new Error('Не знайдено вкладку "Нагородна картка"');
+const LOCK_ENABLED_KEY = 'nagorody_lock_enabled';
+const LOCK_PIN_HASH_KEY = 'nagorody_lock_pin_hash';
+const LOCK_PIN_LENGTH_KEY = 'nagorody_lock_pin_length';
+const LOCK_FAIL_COUNT_KEY = 'nagorody_lock_fail_count';
+const LOCK_LOCKOUT_UNTIL_KEY = 'nagorody_lock_lockout_until';
+
+var lockCurrentPinEntry = '';
+var lockLastHiddenAt = 0;
+var LOCK_GRACE_MS = 120000; // 2 хвилини — швидке перемикання застосунків не вимагає повторного вводу PIN
+var LOCK_FAIL_THRESHOLD = 5; // після кожних 5 невдалих спроб — блокування з наростаючою затримкою
+var LOCK_BASE_LOCKOUT_SEC = 30;
+var LOCK_MAX_LOCKOUT_SEC = 300; // стеля — 5 хвилин
+var lockCountdownTimer = null;
+
+function computeLockoutSeconds(failCount){
+  var cycle = Math.floor(failCount / LOCK_FAIL_THRESHOLD);
+  return Math.min(LOCK_BASE_LOCKOUT_SEC * Math.pow(2, cycle - 1), LOCK_MAX_LOCKOUT_SEC);
+}
+
+function getLockoutRemainingMs(){
+  var until = parseInt(localStorage.getItem(LOCK_LOCKOUT_UNTIL_KEY) || '0', 10);
+  return Math.max(0, until - Date.now());
+}
+
+function isAppLockEnabled(){
+  return localStorage.getItem(LOCK_ENABLED_KEY) === '1';
+}
+function getLockPinLength(){
+  return parseInt(localStorage.getItem(LOCK_PIN_LENGTH_KEY) || '4', 10);
+}
+
+async function sha256Hex(text){
+  var enc = new TextEncoder().encode(text);
+  var buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(function(b){ return b.toString(16).padStart(2,'0'); }).join('');
+}
+
+// ---------- Налаштування (екран "Налаштування") ----------
+function refreshAppLockSettingsUI(){
+  var statusEl = document.getElementById('app-lock-status');
+  var setupArea = document.getElementById('app-lock-setup-area');
+
+  statusEl.textContent = 'Увімкнено: PIN-код (' + getLockPinLength() + ' цифр)';
+  setupArea.style.display = 'none';
+}
+
+function showChangePinForm(){
+  document.getElementById('app-lock-setup-area').style.display = 'block';
+  document.getElementById('lock-setup-error').style.display = 'none';
+  document.getElementById('lock-setup-pin-1').value = '';
+  document.getElementById('lock-setup-pin-2').value = '';
+}
+
+// ---------- Власне спливаюче вікно підтвердження (без назви домену) ----------
+var customConfirmCallback = null;
+
+function showCustomConfirm(message, onConfirmed){
+  document.getElementById('custom-confirm-message').textContent = message;
+  customConfirmCallback = onConfirmed;
+  document.getElementById('custom-confirm-overlay').classList.add('show');
+}
+
+function closeCustomConfirm(confirmed){
+  document.getElementById('custom-confirm-overlay').classList.remove('show');
+  var cb = customConfirmCallback;
+  customConfirmCallback = null;
+  if (confirmed && cb) cb();
+}
+
+async function saveLockSetup(){
+  var pin1 = document.getElementById('lock-setup-pin-1').value.trim();
+  var pin2 = document.getElementById('lock-setup-pin-2').value.trim();
+  var errEl = document.getElementById('lock-setup-error');
+
+  if (!/^\d{4,6}$/.test(pin1)) {
+    errEl.textContent = 'PIN має складатись із 4-6 цифр.';
+    errEl.style.display = 'block';
+    return;
+  }
+  if (pin1 !== pin2) {
+    errEl.textContent = 'PIN-коди не співпадають.';
+    errEl.style.display = 'block';
+    return;
   }
 
-  var data = sheet.getDataRange().getValues();
-  var success = 0;
-  var errors = 0;
+  var hash = await sha256Hex(pin1);
+  localStorage.setItem(LOCK_PIN_HASH_KEY, hash);
+  localStorage.setItem(LOCK_PIN_LENGTH_KEY, String(pin1.length));
+  localStorage.setItem(LOCK_ENABLED_KEY, '1');
 
-  for (var i = 1; i < data.length; i++) {
-    var awardName = data[i][0];
-    var imgId = data[i][1];
-    if (!imgId) continue;
+  document.getElementById('lock-setup-pin-1').value = '';
+  document.getElementById('lock-setup-pin-2').value = '';
+  document.getElementById('app-lock-setup-area').style.display = 'none';
+  refreshAppLockSettingsUI();
+}
 
-    try {
-      var file = DriveApp.getFileById(imgId.toString().trim());
-      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-      Logger.log("OK: " + awardName);
-      success++;
-    } catch (e) {
-      Logger.log("ПОМИЛКА: " + awardName + " — " + e.toString());
-      errors++;
+// ---------- Сам екран-замок ----------
+function showLockGate(){
+  document.getElementById('lock-gate').classList.add('show');
+  lockCurrentPinEntry = '';
+  renderLockPinDots();
+  buildLockKeypad();
+  updateLockBackspaceVisibility();
+  document.getElementById('lock-pin-error').classList.remove('show');
+
+  var remaining = getLockoutRemainingMs();
+  if (remaining > 0) {
+    startLockoutCountdown();
+  } else {
+    setKeypadLockedOut(false);
+  }
+}
+
+function hideLockGate(){
+  document.getElementById('lock-gate').classList.remove('show');
+  lockLastHiddenAt = Date.now(); // старт пільгового періоду з моменту розблокування
+  if (lockCountdownTimer) { clearInterval(lockCountdownTimer); lockCountdownTimer = null; }
+}
+
+function setKeypadLockedOut(isLockedOut){
+  var keypad = document.getElementById('lock-keypad');
+  var msgEl = document.getElementById('lock-pin-lockout-msg');
+  var dotsEl = document.getElementById('lock-pin-dots');
+  keypad.style.opacity = isLockedOut ? '0.35' : '1';
+  keypad.style.pointerEvents = isLockedOut ? 'none' : 'auto';
+  dotsEl.style.display = isLockedOut ? 'none' : 'flex';
+  msgEl.style.display = isLockedOut ? 'block' : 'none';
+}
+
+function startLockoutCountdown(){
+  setKeypadLockedOut(true);
+  var msgEl = document.getElementById('lock-pin-lockout-msg');
+
+  function tick(){
+    var remainingMs = getLockoutRemainingMs();
+    if (remainingMs <= 0) {
+      clearInterval(lockCountdownTimer);
+      lockCountdownTimer = null;
+      setKeypadLockedOut(false);
+      return;
+    }
+    var totalSec = Math.ceil(remainingMs / 1000);
+    var mm = Math.floor(totalSec / 60);
+    var ss = totalSec % 60;
+    var timeLabel = mm > 0 ? (mm + ' хв ' + ss + ' с') : (ss + ' с');
+    msgEl.textContent = 'Забагато невдалих спроб. Спробуйте через ' + timeLabel + '.';
+  }
+
+  tick();
+  if (lockCountdownTimer) clearInterval(lockCountdownTimer);
+  lockCountdownTimer = setInterval(tick, 1000);
+}
+
+
+function renderLockPinDots(){
+  var container = document.getElementById('lock-pin-dots');
+  var neededLength = getLockPinLength();
+  if (container.childElementCount !== neededLength) {
+    container.innerHTML = '';
+    for (var i = 0; i < neededLength; i++) {
+      container.appendChild(document.createElement('span'));
     }
   }
-
-  Logger.log("Готово. Успішно: " + success + ". Помилок: " + errors + ".");
+  var dots = container.querySelectorAll('span');
+  dots.forEach(function(dot, i){
+    dot.classList.toggle('filled', i < lockCurrentPinEntry.length);
+  });
 }
+
+function buildLockKeypad(){
+  var keypad = document.getElementById('lock-keypad');
+  if (keypad.childElementCount > 0) { updateLockBackspaceVisibility(); return; } // будуємо лише один раз
+
+  var layout = ['1','2','3','4','5','6','7','8','9','','0','backspace'];
+  layout.forEach(function(key){
+    var btn = document.createElement('button');
+    if (key === '') {
+      btn.className = 'lock-key-empty';
+      btn.disabled = true;
+    } else if (key === 'backspace') {
+      btn.id = 'lock-backspace-btn';
+      btn.className = 'lock-key-backspace lock-key-empty';
+      btn.innerHTML = '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 4H8l-7 8 7 8h13a2 2 0 002-2V6a2 2 0 00-2-2z"/><path d="M18 9l-6 6M12 9l6 6"/></svg>';
+      btn.onclick = function(){ handleLockKeyPress('⌫'); };
+    } else {
+      btn.textContent = key;
+      btn.onclick = function(){ handleLockKeyPress(key); };
+    }
+    keypad.appendChild(btn);
+  });
+}
+
+function updateLockBackspaceVisibility(){
+  var btn = document.getElementById('lock-backspace-btn');
+  if (!btn) return;
+  btn.classList.toggle('lock-key-empty', lockCurrentPinEntry.length === 0);
+  btn.disabled = lockCurrentPinEntry.length === 0;
+}
+
+async function handleLockKeyPress(key){
+  var neededLength = getLockPinLength();
+
+  if (key === '⌫') {
+    lockCurrentPinEntry = lockCurrentPinEntry.slice(0, -1);
+    renderLockPinDots();
+    updateLockBackspaceVisibility();
+    return;
+  }
+  if (lockCurrentPinEntry.length >= neededLength) return;
+  lockCurrentPinEntry += key;
+  renderLockPinDots();
+  updateLockBackspaceVisibility();
+
+  if (lockCurrentPinEntry.length === neededLength) {
+    var hash = await sha256Hex(lockCurrentPinEntry);
+    var stored = localStorage.getItem(LOCK_PIN_HASH_KEY);
+    if (hash === stored) {
+      localStorage.removeItem(LOCK_FAIL_COUNT_KEY);
+      localStorage.removeItem(LOCK_LOCKOUT_UNTIL_KEY);
+      hideLockGate();
+    } else {
+      document.getElementById('lock-pin-error').classList.add('show');
+      lockCurrentPinEntry = '';
+      renderLockPinDots();
+      updateLockBackspaceVisibility();
+
+      var failCount = parseInt(localStorage.getItem(LOCK_FAIL_COUNT_KEY) || '0', 10) + 1;
+      localStorage.setItem(LOCK_FAIL_COUNT_KEY, String(failCount));
+      if (failCount % LOCK_FAIL_THRESHOLD === 0) {
+        var lockoutSec = computeLockoutSeconds(failCount);
+        localStorage.setItem(LOCK_LOCKOUT_UNTIL_KEY, String(Date.now() + lockoutSec * 1000));
+        document.getElementById('lock-pin-error').classList.remove('show');
+        startLockoutCountdown();
+      }
+    }
+  }
+}
+
+// Перевіряємо замок при поверненні застосунку "на передній план" — але лише
+// якщо застосунок був згорнутий довше пільгового періоду (LOCK_GRACE_MS).
+// Швидке перемикання додатків/вкладок (наприклад, щоб скопіювати щось і
+// повернутись) не вимагає повторного вводу PIN.
+document.addEventListener('visibilitychange', function(){
+  if (document.visibilityState === 'visible') {
+    var elapsed = Date.now() - lockLastHiddenAt;
+    if (isAppLockEnabled() && elapsed > LOCK_GRACE_MS && document.getElementById('app').style.display !== 'none') {
+      showLockGate();
+    }
+  } else {
+    lockLastHiddenAt = Date.now();
+  }
+});
+
+
+// ---------- Ініціалізація авторизації при відкритті ----------
+(function initAuth(){
+  var savedTheme = localStorage.getItem(THEME_STORAGE_KEY) || 'dark';
+  setTheme(savedTheme);
+
+  // 1. Код у посиланні (персональне запрошення) — найвищий пріоритет
+  var urlParams = new URLSearchParams(location.search);
+  var urlCode = urlParams.get('code');
+
+  if (urlCode) {
+    // прибираємо код з адресного рядка одразу, щоб не лишався в історії/скріншотах
+    var cleanUrl = location.origin + location.pathname + location.hash;
+    history.replaceState(null, '', cleanUrl);
+    checkAccessCode(urlCode);
+    return;
+  }
+
+  // 2. Збережена сесія на пристрої — показуємо одразу (офлайн-стійкість),
+  // але тихо звіряємось із сервером у фоні, щоб дата оновлення даних і
+  // решта інформації не "застигали" з моменту першого входу. Якщо на
+  // пристрої увімкнено локальний замок — спершу показуємо його поверх
+  // застосунку, і тільки після розблокування дозволяємо гортати екрани.
+  var saved = getSavedAuth();
+  if (saved && saved.user) {
+    showApp(saved.user, saved.dataUpdatedAt);
+    refreshAuthInBackground(saved.code);
+    if (isAppLockEnabled()) showLockGate();
+    return;
+  }
+
+  // 3. Нічого немає — показуємо форму ручного вводу коду
+  document.getElementById('auth-code-input').focus();
+})();
+
+// ---------- Навігація (hash-based SPA роутер) ----------
+const SCREENS = ['home','search','stats','digest','reference','docs','howto','more','admin'];
+const NAV_SCREENS = ['home','stats','more']; // ті, що мають кнопку в bottombar
+
+function goToSearchFromHome(prefill){
+  navigate('search');
+  var real = document.getElementById('search-input');
+  if (!real) return;
+  if (prefill && prefill.trim()) {
+    real.value = prefill.trim();
+    real.focus();
+    performSearch();
+  } else {
+    real.focus();
+  }
+}
+
+function navigate(screen){
+  if (SCREENS.indexOf(screen) === -1) screen = 'home';
+  currentScreen = screen;
+  SCREENS.forEach(s => {
+    document.getElementById('screen-' + s).classList.toggle('active', s === screen);
+  });
+  document.getElementById('main').classList.toggle('home-fit', screen === 'home');
+  if (screen === 'reference') openReference();
+  if (screen === 'stats') openStats();
+  if (screen === 'admin') openAdminStats();
+  if (screen === 'more') refreshAppLockSettingsUI();
+  if (screen === 'docs' || screen === 'howto') logPwaView(screen);
+  document.querySelectorAll('nav.bottombar button').forEach(btn => {
+    var target = btn.getAttribute('data-screen');
+    var isActive = (target === screen) ||
+      (target === 'home' && screen === 'search') ||
+      (NAV_SCREENS.indexOf(screen) === -1 && target === 'more' && ['reference','docs','howto','admin'].indexOf(screen) !== -1);
+    btn.classList.toggle('active', isActive);
+  });
+  document.getElementById('main').scrollTop = 0;
+  history.replaceState(null, '', '#' + screen);
+}
+
+window.addEventListener('hashchange', function(){
+  var s = location.hash.replace('#','');
+  if (s) navigate(s);
+});
+
+// initial screen from hash
+(function(){
+  var s = location.hash.replace('#','');
+  if (s && SCREENS.indexOf(s) !== -1) navigate(s);
+})();
+
+// ---------- Офлайн-індикатор ----------
+function updateOnlineStatus(){
+  document.getElementById('offline-banner').classList.toggle('show', !navigator.onLine);
+}
+window.addEventListener('online', updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+updateOnlineStatus();
+
+function byteArrayFromBase64(base64){
+  var byteChars = atob(base64);
+  var byteNumbers = new Array(byteChars.length);
+  for (var i = 0; i < byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i);
+  return new Uint8Array(byteNumbers);
+}
+
+function downloadBlobFallback(byteArray, filename, mime){
+  var blob = new Blob([byteArray], { type: mime });
+  var link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  setTimeout(function(){ URL.revokeObjectURL(link.href); }, 5000);
+}
+
+// ---------- Щомісячний дайджест (дзвіночок) ----------
+var DIGEST_SEEN_KEY = 'nagorody_digest_seen_month';
+var digestData = null;
+
+function loadDigest(){
+  var url = API_BASE_URL + '?action=digest&code=' + encodeURIComponent(getAuthCode());
+  fetch(url)
+    .then(function(res){ return res.json(); })
+    .then(function(data){
+      if (data && data.ok) {
+        digestData = data;
+        var seen = localStorage.getItem(DIGEST_SEEN_KEY);
+        var dot = document.getElementById('bell-dot');
+        if (dot) dot.style.display = (seen !== data.monthKey && data.total > 0) ? 'block' : 'none';
+      }
+    })
+    .catch(function(){ /* тихо ігноруємо — дзвіночок просто лишиться без позначки */ });
+}
+
+function openDigest(){
+  navigate('digest');
+  logPwaView('digest');
+  var body = document.getElementById('digest-body');
+
+  function render(){
+    if (!digestData) {
+      body.innerHTML = '<p class="placeholder-note">Не вдалося завантажити дайджест.</p>';
+      return;
+    }
+    if (digestData.total === 0) {
+      body.innerHTML = '<p class="placeholder-note">За ' + escapeHtml(digestData.monthLabel) + ' нових нагороджень не було.</p>';
+      return;
+    }
+    body.innerHTML =
+      '<div class="card digest-card">' +
+      '<p style="font-size:19px;font-weight:800;color:var(--zoloto);text-transform:uppercase;letter-spacing:0.02em;margin:0 0 2px;">Дайджест нагород</p>' +
+      '<p class="body-note" style="margin:0 0 16px;">' + escapeHtml(digestData.monthLabel) + '</p>' +
+
+      '<p class="stats-metric-value" style="font-size:38px;">' + digestData.total + '</p>' +
+      '<p class="body-note" style="margin-top:2px;">наших побратимів і посестер отримали заслужені нагороди за минулий місяць</p>' +
+
+      '<div style="border-top:1px solid var(--border-soft); margin:16px 0;"></div>' +
+
+      '<p class="card-title" style="margin-bottom:5px;">Топ-нагорода місяця</p>' +
+      '<p class="body-note" style="font-weight:700;color:var(--text-primary);margin-bottom:16px;">' + escapeHtml(digestData.topAward) + '</p>' +
+
+      '<p class="card-title" style="margin-bottom:5px;">Найбільше нагороджених у</p>' +
+      '<p class="body-note" style="font-weight:700;color:var(--text-primary);">' + escapeHtml(digestData.topUnit) + '</p>' +
+
+      '<div style="border-top:1px solid var(--border-soft); margin:16px 0;"></div>' +
+
+      '<p class="body-note" style="text-align:center;">Дякуємо за службу! Слава Україні! ' +
+      '<svg width="16" height="11" viewBox="0 0 16 11" style="vertical-align:-1px; display:inline-block; border-radius:1px;">' +
+      '<rect width="16" height="5.5" y="0" fill="#0057B7"/>' +
+      '<rect width="16" height="5.5" y="5.5" fill="#FFD700"/>' +
+      '</svg>' +
+      '</p>' +
+      '</div>';
+
+    localStorage.setItem(DIGEST_SEEN_KEY, digestData.monthKey);
+    var dot = document.getElementById('bell-dot');
+    if (dot) dot.style.display = 'none';
+  }
+
+  if (digestData) {
+    render();
+  } else {
+    body.innerHTML = '<div class="search-loading">Завантажую дайджест...</div>';
+    var url = API_BASE_URL + '?action=digest&code=' + encodeURIComponent(getAuthCode());
+    fetch(url)
+      .then(function(res){ return res.json(); })
+      .then(function(data){
+        if (data && data.ok) { digestData = data; render(); }
+        else body.innerHTML = '<p class="placeholder-note">Не вдалося завантажити дайджест.</p>';
+      })
+      .catch(function(){
+        body.innerHTML = '<p class="placeholder-note">Немає з\'єднання з сервером.</p>';
+      });
+  }
+}
+
+// ---------- Адмін-статистика ----------
+function openAdminStats(){
+  var body = document.getElementById('admin-body');
+  body.innerHTML = '<div class="search-loading">Завантажую...</div>';
+
+  var url = API_BASE_URL + '?action=adminStats&code=' + encodeURIComponent(getAuthCode());
+  fetch(url)
+    .then(function(res){ return res.json(); })
+    .then(function(data){
+      if (!data || !data.ok) {
+        body.innerHTML = '<p class="placeholder-note">Не вдалося завантажити статистику.</p>';
+        return;
+      }
+
+      var html =
+        '<div class="card">' +
+        '<p class="card-title">Всього користувачів</p>' +
+        '<p class="stats-metric-value" style="text-align:center;">' + data.total + '</p>' +
+        '</div>';
+
+      var personIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>';
+      var peopleIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M2 20c0-3.3 3.1-6 7-6s7 2.7 7 6"/><circle cx="17" cy="8" r="2.5"/><path d="M15.5 14.2c2.9.6 4.5 2.6 4.5 5.8"/></svg>';
+      var calendarIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4.5" width="18" height="16.5" rx="2.5"/><path d="M16 2.5v4M8 2.5v4M3 10h18"/></svg>';
+      var trashIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4.5A1.5 1.5 0 0110.5 3h3A1.5 1.5 0 0115 4.5V7m2 0v13a2 2 0 01-2 2H9a2 2 0 01-2-2V7"/></svg>';
+      var qrIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v3M14 20h3M20 20v.01"/></svg>';
+
+      function buildUserRow(u, isActive, metaHtml){
+        return '<div class="admin-user-row' + (isActive ? ' is-active' : '') + '">' +
+          '<div class="admin-user-avatar">' + personIcon + '</div>' +
+          '<div class="admin-user-info">' +
+          '<p class="admin-user-name">' + escapeHtml(u.name) + '</p>' +
+          '<span class="admin-user-unit-pill">' + escapeHtml(u.unit) + '</span>' +
+          '<div class="admin-user-meta">' + calendarIcon + '<span>' + metaHtml + '</span></div>' +
+          '</div>' +
+          '<button class="admin-qr-btn" onclick="showAdminUserLink(\'' + escapeHtml(u.id) + '\', \'' + escapeHtml(u.name).replace(/'/g, "\\'") + '\')" title="Посилання / QR">' + qrIcon + '</button>' +
+          '<button class="admin-delete-stack" onclick="confirmAdminDeleteUser(\'' + escapeHtml(u.id) + '\', \'' + escapeHtml(u.name).replace(/'/g, "\\'") + '\')">' + trashIcon + '<span>Видалити</span></button>' +
+          '</div>';
+      }
+
+      html += '<div class="admin-section-title"><div class="icon-wrap">' + peopleIcon + '</div><p class="card-title" style="margin:0;">Активні за 7 днів (' + data.active.length + ')</p></div>';
+      if (data.active.length === 0) {
+        html += '<p class="body-note">Немає активних користувачів за останній тиждень.</p>';
+      } else {
+        for (var a = 0; a < data.active.length; a++) {
+          html += buildUserRow(data.active[a], true, escapeHtml(data.active[a].lastSeenLabel));
+        }
+      }
+
+      html += '<div class="admin-section-title" style="margin-top:18px;"><div class="icon-wrap">' + peopleIcon + '</div><p class="card-title" style="margin:0;">Неактивні (' + data.inactive.length + ')</p></div>';
+      if (data.inactive.length === 0) {
+        html += '<p class="body-note">Усі користувачі заходили протягом останнього тижня.</p>';
+      } else {
+        for (var n = 0; n < data.inactive.length; n++) {
+          html += buildUserRow(data.inactive[n], false, escapeHtml(data.inactive[n].statusLabel));
+        }
+      }
+
+      if (data.weeklyLog) {
+        var wl = data.weeklyLog;
+        html += '<div class="card" style="margin-top:18px;">';
+        html += '<p class="card-title">Активність за 7 днів</p>';
+        html += '<p class="body-note" style="margin-top:8px;">Унікальних користувачів: <b>' + wl.uniqueUsers + '</b></p>';
+        html += '<p class="body-note" style="margin-top:6px;">Всього дій: <b>' + wl.totalActions + '</b></p>';
+
+        if (wl.sections && wl.sections.length > 0) {
+          html += '<p class="body-note" style="margin-top:12px;"><b>Популярні розділи:</b></p>';
+          for (var s = 0; s < wl.sections.length; s++) {
+            html += '<p class="body-note" style="margin-top:4px;">' + escapeHtml(wl.sections[s].name) + ': <b>' + wl.sections[s].count + '</b></p>';
+          }
+        }
+
+        if (wl.topQueries && wl.topQueries.length > 0) {
+          html += '<p class="body-note" style="margin-top:12px;"><b>Топ пошукових запитів:</b></p>';
+          for (var q = 0; q < wl.topQueries.length; q++) {
+            html += '<p class="body-note" style="margin-top:4px;">' + (q + 1) + '. ' + escapeHtml(wl.topQueries[q].query) + ' (' + wl.topQueries[q].count + ')</p>';
+          }
+        }
+        html += '</div>';
+      }
+
+      body.innerHTML = html;
+    })
+    .catch(function(){
+      body.innerHTML = '<p class="placeholder-note">Немає з\'єднання з сервером.</p>';
+    });
+}
+
+function submitAdminAddUser(){
+  var nameInput = document.getElementById('admin-new-name');
+  var unitInput = document.getElementById('admin-new-unit');
+  var resultBox = document.getElementById('admin-add-result');
+
+  var fullName = nameInput.value.trim();
+  var unit = unitInput.value.trim();
+
+  if (!fullName) {
+    resultBox.innerHTML = '<p class="body-note" style="color:#C0392B;">Введіть ПІБ.</p>';
+    return;
+  }
+
+  resultBox.innerHTML = '<div class="search-loading">Додаю...</div>';
+
+  var url = API_BASE_URL + '?action=adminAddUser&code=' + encodeURIComponent(getAuthCode())
+    + '&name=' + encodeURIComponent(fullName)
+    + '&unit=' + encodeURIComponent(unit);
+
+  fetch(url)
+    .then(function(res){ return res.json(); })
+    .then(function(data){
+      if (!data || !data.ok) {
+        resultBox.innerHTML = '<p class="body-note" style="color:#C0392B;">Не вдалося додати користувача.</p>';
+        return;
+      }
+      resultBox.innerHTML =
+        '<p class="body-note">Користувача додано. Персональне посилання:</p>' +
+        '<p class="body-note" id="admin-new-link" style="word-break:break-all;margin-top:4px;font-weight:bold;">' + escapeHtml(data.link) + '</p>' +
+        '<button class="theme-btn" style="width:100%;margin-top:8px;" onclick="copyAdminLink()">Скопіювати посилання</button>' +
+        '<div id="admin-new-qr" style="display:flex;justify-content:center;margin-top:14px;background:#fff;border-radius:8px;padding:12px;"></div>';
+      nameInput.value = '';
+      unitInput.value = '';
+      if (window.QRCode) {
+        new QRCode(document.getElementById('admin-new-qr'), { text: data.link, width: 176, height: 176 });
+      }
+      openAdminStats();
+    })
+    .catch(function(){
+      resultBox.innerHTML = '<p class="body-note" style="color:#C0392B;">Немає з\'єднання з сервером.</p>';
+    });
+}
+
+function copyAdminLink(){
+  var linkEl = document.getElementById('admin-new-link');
+  if (!linkEl) return;
+  var text = linkEl.textContent;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text);
+  }
+}
+
+function confirmAdminDeleteUser(id, name){
+  showCustomConfirm('Видалити користувача "' + name + '"? Доступ до застосунку буде втрачено негайно.', function(){
+    var url = API_BASE_URL + '?action=adminDeleteUser&code=' + encodeURIComponent(getAuthCode()) + '&targetId=' + encodeURIComponent(id);
+    fetch(url)
+      .then(function(res){ return res.json(); })
+      .then(function(data){
+        if (data && data.ok) {
+          openAdminStats();
+        } else {
+          showCustomConfirm('Не вдалося видалити користувача. Спробуйте ще раз.', function(){});
+        }
+      })
+      .catch(function(){
+        showCustomConfirm('Немає з\'єднання з сервером.', function(){});
+      });
+  });
+}
+
+function showAdminUserLink(id, name){
+  document.getElementById('user-link-title').textContent = name;
+  document.getElementById('user-link-qr').innerHTML = '';
+  document.getElementById('user-link-text').textContent = 'Завантаження...';
+  document.getElementById('user-link-overlay').classList.add('show');
+
+  var url = API_BASE_URL + '?action=adminGetUserLink&code=' + encodeURIComponent(getAuthCode()) + '&targetId=' + encodeURIComponent(id);
+  fetch(url)
+    .then(function(res){ return res.json(); })
+    .then(function(data){
+      if (data && data.ok) {
+        document.getElementById('user-link-text').textContent = data.link;
+        if (window.QRCode) {
+          new QRCode(document.getElementById('user-link-qr'), { text: data.link, width: 176, height: 176 });
+        }
+      } else {
+        document.getElementById('user-link-text').textContent = 'Не вдалося отримати посилання.';
+      }
+    })
+    .catch(function(){
+      document.getElementById('user-link-text').textContent = 'Немає з\'єднання з сервером.';
+    });
+}
+
+function copyUserLinkModal(){
+  var text = document.getElementById('user-link-text').textContent;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text);
+  }
+}
+
+function closeUserLinkModal(){
+  document.getElementById('user-link-overlay').classList.remove('show');
+}
+
+// Технічний пінг для статичних екранів (Документи/Як нагородити), які самі
+// по собі не звертаються до бекенду — потрібен лише для тижневого звіту
+// активності. Тихо ігнорує будь-які помилки/офлайн.
+function logPwaView(section){
+  var url = API_BASE_URL + '?action=logView&code=' + encodeURIComponent(getAuthCode()) + '&section=' + encodeURIComponent(section);
+  fetch(url).catch(function(){});
+}
+
+// ---------- Пошук військовослужбовця ----------
+function escapeHtml(str){
+  return String(str == null ? '' : str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function getAuthCode(){
+  var saved = getSavedAuth();
+  return saved ? saved.code : '';
+}
+
+function performSearch(){
+  var query = document.getElementById('search-input').value.trim();
+  var container = document.getElementById('search-results');
+
+  if (query.length < 2) {
+    container.innerHTML = '<p class="placeholder-note">Введіть щонайменше 2 символи для пошуку.</p>';
+    return;
+  }
+
+  container.innerHTML = '<div class="search-loading">Шукаю...</div>';
+
+  var url = API_BASE_URL + '?action=search&code=' + encodeURIComponent(getAuthCode()) + '&query=' + encodeURIComponent(query);
+
+  fetch(url)
+    .then(function(res){ return res.json(); })
+    .then(function(data){ renderSearchResults(data); })
+    .catch(function(){
+      container.innerHTML = '<p class="placeholder-note">Немає з\'єднання з сервером. Перевірте інтернет і спробуйте ще раз.</p>';
+    });
+}
+
+document.getElementById('search-input').addEventListener('keydown', function(e){
+  if (e.key === 'Enter') performSearch();
+});
+
+var CATEGORY_TOP_TIERS = ['Державна нагорода', 'Нагорода від МОУ', 'Нагорода від ГК ЗСУ'];
+
+function renderSearchResults(data){
+  var container = document.getElementById('search-results');
+
+  if (!data || !data.ok) {
+    if (data && data.error === 'too_many_results') {
+      container.innerHTML = '<p class="placeholder-note">Забагато збігів (' + data.count + '). Введіть прізвище та ім\'я повністю.</p>';
+    } else if (data && data.error === 'unauthorized') {
+      container.innerHTML = '<p class="placeholder-note">Сесія застаріла. Перезайдіть у застосунок за своїм посиланням.</p>';
+    } else {
+      container.innerHTML = '<p class="placeholder-note">Сталася помилка пошуку. Спробуйте ще раз.</p>';
+    }
+    return;
+  }
+
+  if (data.count === 0) {
+    container.innerHTML = '<p class="placeholder-note">Нічого не знайдено. Перевірте написання прізвища.</p>';
+    return;
+  }
+
+  window.__lastSearchResults = data.results;
+
+  var html = '<p class="results-meta">Знайдено: ' + data.count + '</p>';
+
+  data.results.forEach(function(person, idx){
+    var expanded = data.results.length === 1 ? ' expanded' : '';
+    html += '<div class="person-card' + expanded + '" id="person-' + idx + '">';
+    html += '  <div class="person-head" onclick="togglePerson(' + idx + ')">';
+    html += '    <div class="person-info">';
+    html += '      <p class="person-name">' + escapeHtml(person.name) + '</p>';
+    html += '      <p class="person-unit">' + escapeHtml(person.unit || 'Підрозділ не вказано') + '</p>';
+    html += '    </div>';
+    html += '    <span class="person-count">' + person.totalAwards + '</span>';
+    html += '    <svg class="person-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>';
+    html += '  </div>';
+    html += '  <div class="awards-list">';
+    person.awards.forEach(function(a){
+      var isTop = CATEGORY_TOP_TIERS.indexOf(a.category) !== -1;
+      html += '    <div class="award-row">';
+      html += '      <div class="award-top">';
+      html += '        <span class="award-name">' + escapeHtml(a.name || 'Назва відсутня') + '</span>';
+      html += '        <span class="award-tag ' + (isTop ? 'tier-top' : 'tier-other') + '">' + escapeHtml(a.category || 'інше') + '</span>';
+      html += '      </div>';
+      html += '      <p class="award-order">' + escapeHtml(a.order || 'дані про наказ відсутні') + '</p>';
+      html += '    </div>';
+    });
+    html += '    <div class="award-card-download">';
+    html += '      <button class="btn-outline" id="dl-btn-' + idx + '" onclick="downloadAwardCard(' + idx + ')">';
+    html += '        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16"/></svg>';
+    html += '        Завантажити нагородну картку PDF';
+    html += '      </button>';
+    html += '    </div>';
+    html += '  </div>';
+    html += '</div>';
+  });
+
+  container.innerHTML = html;
+}
+
+function togglePerson(idx){
+  document.getElementById('person-' + idx).classList.toggle('expanded');
+}
+
+function downloadAwardCard(idx){
+  var person = window.__lastSearchResults && window.__lastSearchResults[idx];
+  if (!person) return;
+
+  var btn = document.getElementById('dl-btn-' + idx);
+  var originalText = btn.innerHTML;
+  btn.innerHTML = 'Формую PDF...';
+  btn.disabled = true;
+
+  var url = API_BASE_URL + '?action=awardCard'
+    + '&code=' + encodeURIComponent(getAuthCode())
+    + '&name=' + encodeURIComponent(person.name)
+    + '&dob=' + encodeURIComponent(person.dob || '');
+
+  fetch(url)
+    .then(function(res){ return res.json(); })
+    .then(function(data){
+      if (!data || !data.ok) {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        alert('Не вдалося сформувати картку. Спробуйте ще раз.');
+        return;
+      }
+
+      var byteArray = byteArrayFromBase64(data.pdfBase64);
+      var filename = data.filename || 'Нагородна_картка.pdf';
+      downloadBlobFallback(byteArray, filename, 'application/pdf');
+      btn.innerHTML = '✓ Завантажено';
+      setTimeout(function(){
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+      }, 1500);
+    })
+    .catch(function(){
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+      alert('Немає з\'єднання з сервером. Перевірте інтернет і спробуйте ще раз.');
+    });
+}
+
+// ---------- Довідник нагород ----------
+var referenceItems = null;
+var refStack = [{ step: 'root' }];
+
+var ICON_RANK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+var ICON_FOLDER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>';
+var ICON_AWARD_SMALL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="15" r="5"/><path d="M8.5 10L7 3h10l-1.5 7"/></svg>';
+
+function openReference(){
+  refStack = [{ step: 'root' }];
+  renderReference();
+}
+
+function refPush(state){
+  refStack.push(state);
+  renderReference();
+}
+
+function refBack(){
+  if (refStack.length <= 1) { navigate('home'); return; }
+  refStack.pop();
+  renderReference();
+}
+
+function ensureReferenceLoaded(cb){
+  if (referenceItems) { cb(); return; }
+  var body = document.getElementById('reference-body');
+  body.innerHTML = '<div class="search-loading">Завантажую довідник...</div>';
+
+  var url = API_BASE_URL + '?action=reference&code=' + encodeURIComponent(getAuthCode());
+  fetch(url)
+    .then(function(res){ return res.json(); })
+    .then(function(data){
+      if (!data || !data.ok) {
+        var errText = (data && data.error) ? String(data.error) : 'невідома помилка';
+        body.innerHTML = '<p class="placeholder-note">Не вдалося завантажити довідник.<br><span style="font-size:11px;opacity:.7;word-break:break-word;">' + errText.replace(/</g,'&lt;') + '</span></p>';
+        return;
+      }
+      referenceItems = data.items;
+      cb();
+    })
+    .catch(function(err){
+      body.innerHTML = '<p class="placeholder-note">Немає з\'єднання з сервером.<br><span style="font-size:11px;opacity:.7;word-break:break-word;">' + String(err).replace(/</g,'&lt;') + '</span></p>';
+    });
+}
+
+function renderReference(){
+  var state = refStack[refStack.length - 1];
+  ensureReferenceLoaded(function(){
+    if (state.step === 'root') renderRefRoot();
+    else if (state.step === 'categories') renderRefCategories(state.rank);
+    else if (state.step === 'awards') renderRefAwards(state.category);
+    else if (state.step === 'detail') renderRefDetail(state.awardName);
+  });
+}
+
+function clearRefBody(){
+  var body = document.getElementById('reference-body');
+  body.innerHTML = '';
+  return body;
+}
+
+function makeRefRow(title, subtitle, onClick, iconSvgHtml, imageUrl){
+  var row = document.createElement('div');
+  row.className = 'row-card';
+  row.innerHTML =
+    '<div class="icon-wrap">' + (imageUrl ? '' : iconSvgHtml) + '</div>' +
+    '<div class="row-text"><p class="row-title"></p>' + (subtitle ? '<p class="row-sub"></p>' : '') + '</div>' +
+    '<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>';
+  if (imageUrl) {
+    var img = document.createElement('img');
+    img.src = imageUrl;
+    img.alt = '';
+    img.loading = 'lazy';
+    img.onerror = function(){ row.querySelector('.icon-wrap').innerHTML = iconSvgHtml; };
+    row.querySelector('.icon-wrap').appendChild(img);
+  }
+  row.querySelector('.row-title').textContent = title;
+  if (subtitle) row.querySelector('.row-sub').textContent = subtitle;
+  row.addEventListener('click', onClick);
+  return row;
+}
+
+var REFERENCE_RANKS = ['Рядовий та сержантський склад', 'Офіцерський склад', 'Для всіх військовослужбовців'];
+
+function referenceMatchesRank(whom, rank){
+  var w = (whom || '').toString();
+  if (rank === 'Рядовий та сержантський склад') {
+    return w.indexOf('Рядовий та сержантський склад') !== -1 || w.indexOf('Сержантський склад') !== -1 || w.indexOf('Сержантський та офіцерський склад') !== -1;
+  }
+  if (rank === 'Офіцерський склад') {
+    return w.indexOf('Офіцерський склад') !== -1 || w.indexOf('Старший та вищій офіцерський склад') !== -1 || w.indexOf('Сержантський та офіцерський склад') !== -1;
+  }
+  if (rank === 'Для всіх військовослужбовців') {
+    return w.indexOf('Рядовий, сержантський та офіцерський склад') !== -1;
+  }
+  return false;
+}
+
+function renderRefRoot(){
+  var body = clearRefBody();
+
+  var searchCard = document.createElement('div');
+  searchCard.className = 'card';
+  var row = document.createElement('div');
+  row.className = 'search-input-row';
+  row.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>';
+  var input = document.createElement('input');
+  input.type = 'text';
+  input.id = 'reference-search-input';
+  input.placeholder = "Пошук за назвою нагороди...";
+  input.addEventListener('input', function(){ renderRefRootList(input.value.trim()); });
+  row.appendChild(input);
+  searchCard.appendChild(row);
+  body.appendChild(searchCard);
+
+  var listDiv = document.createElement('div');
+  listDiv.id = 'reference-root-list';
+  body.appendChild(listDiv);
+
+  renderRefRootList('');
+}
+
+function renderRefRootList(query){
+  var listDiv = document.getElementById('reference-root-list');
+  if (!listDiv) return;
+  listDiv.innerHTML = '';
+
+  if (!query) {
+    REFERENCE_RANKS.forEach(function(r){
+      listDiv.appendChild(makeRefRow(r, null, function(){ refPush({ step: 'categories', rank: r }); }, ICON_RANK));
+    });
+    return;
+  }
+
+  var q = query.toLowerCase();
+  var matches = referenceItems.filter(function(item){
+    return item.name.toLowerCase().indexOf(q) !== -1;
+  });
+
+  if (matches.length === 0) {
+    listDiv.innerHTML = '<p class="placeholder-note">Нічого не знайдено.</p>';
+    return;
+  }
+
+  matches.forEach(function(a){
+    listDiv.appendChild(makeRefRow(a.name, a.categoryLabel, function(){ refPush({ step: 'detail', awardName: a.name }); }, ICON_AWARD_SMALL, a.imageUrl));
+  });
+}
+
+function renderRefCategories(rank){
+  var body = clearRefBody();
+
+  var cats = [];
+  referenceItems.forEach(function(item){
+    if (referenceMatchesRank(item.whom, rank) && cats.indexOf(item.categoryLabel) === -1) {
+      cats.push(item.categoryLabel);
+    }
+  });
+
+  if (cats.length === 0) {
+    body.innerHTML = '<p class="placeholder-note">Нагород для цього складу поки немає.</p>';
+    return;
+  }
+
+  cats.forEach(function(c){
+    body.appendChild(makeRefRow(c, null, function(){ refPush({ step: 'awards', rank: rank, category: c }); }, ICON_FOLDER));
+  });
+}
+
+function renderRefAwards(category){
+  var body = clearRefBody();
+
+  var awards = referenceItems.filter(function(item){
+    return item.categoryLabel === category && item.name.indexOf('ступеня') === -1;
+  });
+
+  if (awards.length === 0) {
+    body.innerHTML = '<p class="placeholder-note">Нагород у цій категорії не знайдено.</p>';
+    return;
+  }
+
+  awards.forEach(function(a){
+    body.appendChild(makeRefRow(a.name, null, function(){ refPush({ step: 'detail', awardName: a.name }); }, ICON_AWARD_SMALL, a.imageUrl));
+  });
+}
+
+function getDegreeRank(name){
+  var n = (name || '').toString();
+  if (n.indexOf('ІІІ') !== -1) return 3;
+  if (n.indexOf('ІІ') !== -1) return 2;
+  if (n.indexOf('І') !== -1) return 1;
+  return 0;
+}
+
+function formatTextBlock(text){
+  var wrap = document.createElement('div');
+  var paragraphs = text.split(/\n\s*\n/);
+  paragraphs.forEach(function(para){
+    var lines = para.split('\n').map(function(l){ return l.trim(); }).filter(Boolean);
+    if (lines.length === 0) return;
+    var isList = lines.every(function(l){ return l.charAt(0) === '-' || l.charAt(0) === '•'; });
+    if (isList) {
+      var ul = document.createElement('ul');
+      ul.style.margin = '4px 0';
+      ul.style.paddingLeft = '18px';
+      lines.forEach(function(l){
+        var li = document.createElement('li');
+        li.className = 'body-note';
+        li.style.marginBottom = '2px';
+        li.textContent = l.replace(/^[-•]\s*/, '');
+        ul.appendChild(li);
+      });
+      wrap.appendChild(ul);
+    } else {
+      var p = document.createElement('p');
+      p.className = 'body-note';
+      p.style.marginTop = '4px';
+      p.textContent = lines.join(' ');
+      wrap.appendChild(p);
+    }
+  });
+  return wrap;
+}
+
+function renderRefDetail(awardName){
+  var body = clearRefBody();
+
+  var item = referenceItems.find(function(i){ return i.name === awardName; });
+  if (!item) {
+    body.innerHTML = '<p class="placeholder-note">Нагороду не знайдено.</p>';
+    return;
+  }
+
+  // Ордени з кількома ступенями (Богдана Хмельницького, За мужність тощо):
+  // об'єднуємо базовий запис і всі варіанти ступенів в один блок замість
+  // окремої навігації по кожному ступеню.
+  var siblings = referenceItems.filter(function(i){
+    return i.name !== item.name && i.name.indexOf(item.name) === 0 && i.name.indexOf('ступеня') !== -1;
+  }).sort(function(a, b){ return getDegreeRank(a.name) - getDegreeRank(b.name); });
+
+  function buildAwardCard(data, isDegree){
+    var card = document.createElement('div');
+    card.className = 'card';
+    if (isDegree) card.style.marginTop = '10px';
+
+    if (data.imageUrl) {
+      var imgWrap = document.createElement('div');
+      imgWrap.style.textAlign = 'center';
+      imgWrap.style.marginBottom = '10px';
+      var img = document.createElement('img');
+      img.src = data.imageUrl;
+      img.alt = '';
+      img.style.maxHeight = '110px';
+      img.style.maxWidth = '110px';
+      img.style.objectFit = 'contain';
+      imgWrap.appendChild(img);
+      card.appendChild(imgWrap);
+    }
+
+    var title = document.createElement('p');
+    title.className = 'card-title';
+    title.style.textTransform = 'none';
+    title.style.fontSize = isDegree ? '14px' : '16px';
+    title.style.textAlign = 'center';
+    title.textContent = data.name;
+    card.appendChild(title);
+
+    function addSection(label, text){
+      if (!text) return;
+      var l = document.createElement('p');
+      l.className = 'card-title';
+      l.style.marginTop = '14px';
+      l.style.marginBottom = '2px';
+      l.textContent = label;
+      card.appendChild(l);
+      card.appendChild(formatTextBlock(text));
+    }
+
+    addSection('Опис', data.desc);
+    addSection('Кому', data.whom);
+    if (data.money) addSection('Грошова виплата', data.money);
+    addSection('Пільги', data.perks || 'немає');
+
+    return card;
+  }
+
+  body.appendChild(buildAwardCard(item, false));
+
+  siblings.forEach(function(s){
+    var heading = document.createElement('p');
+    heading.className = 'card-title';
+    heading.style.marginTop = '16px';
+    heading.style.color = 'var(--zoloto)';
+    var rank = getDegreeRank(s.name);
+    heading.textContent = (rank === 3 ? 'ІІІ' : rank === 2 ? 'ІІ' : 'І') + ' ступінь';
+    body.appendChild(heading);
+    body.appendChild(buildAwardCard(s, true));
+  });
+}
+
+// ---------- Статистика ----------
+function wrapChartLabel(str, maxLen){
+  var words = (str || '').toString().split(' ');
+  var lines = [];
+  var current = '';
+  words.forEach(function(w){
+    var candidate = current ? (current + ' ' + w) : w;
+    if (candidate.length > maxLen && current) {
+      lines.push(current);
+      current = w;
+    } else {
+      current = candidate;
+    }
+  });
+  if (current) lines.push(current);
+  return lines;
+}
+
+var statsCache = {};            // year ("all" | "2025" тощо) -> дані з action=stats
+var statsCurrentYear = 'all';
+var statsCurrentTab = 'gen';    // 'gen' | 'unit' | 'ppl'
+var statsUnitDetailName = null; // якщо задано — показуємо деталі підрозділу замість списку
+var statsChartCat = null;
+var statsChartTrend = null;
+
+function openStats(){
+  statsCurrentTab = 'gen';
+  statsUnitDetailName = null;
+  document.querySelectorAll('.stats-tab').forEach(function(btn){
+    btn.classList.toggle('active', btn.getAttribute('data-tab') === 'gen');
+  });
+
+  if (statsCache['all']) {
+    renderStatsYearChips();
+    renderStatsBody();
+    return;
+  }
+  loadStats('all', function(){
+    renderStatsYearChips();
+    renderStatsBody();
+  });
+}
+
+function loadStats(year, cb){
+  var body = document.getElementById('stats-body');
+  if (body) body.innerHTML = '<div class="search-loading">Завантажую статистику...</div>';
+
+  var url = API_BASE_URL + '?action=stats&code=' + encodeURIComponent(getAuthCode()) + '&year=' + encodeURIComponent(year);
+
+  fetch(url)
+    .then(function(res){ return res.json(); })
+    .then(function(data){
+      if (!data || !data.ok) {
+        if (body) body.innerHTML = '<p class="placeholder-note">Не вдалося завантажити статистику.<br><span style="font-size:11px;opacity:.7;">' + escapeHtml((data && data.error) || 'помилка') + '</span></p>';
+        return;
+      }
+      statsCache[year] = data;
+      if (cb) cb();
+    })
+    .catch(function(){
+      if (body) body.innerHTML = '<p class="placeholder-note">Немає з\'єднання з сервером.</p>';
+    });
+}
+
+function renderStatsYearChips(){
+  var row = document.getElementById('stats-year-row');
+  if (!row || !statsCache['all']) return;
+  row.innerHTML = '';
+
+  var allBtn = document.createElement('button');
+  allBtn.className = 'stats-chip' + (statsCurrentYear === 'all' ? ' active' : '');
+  allBtn.textContent = 'Весь час';
+  allBtn.onclick = function(){ setStatsYear('all'); };
+  row.appendChild(allBtn);
+
+  var years = (statsCache['all'].trend || []).map(function(t){ return t.year; }).sort(function(a, b){ return b.localeCompare(a); });
+  years.forEach(function(y){
+    var btn = document.createElement('button');
+    btn.className = 'stats-chip' + (statsCurrentYear === y ? ' active' : '');
+    btn.textContent = y;
+    btn.onclick = function(){ setStatsYear(y); };
+    row.appendChild(btn);
+  });
+}
+
+function setStatsYear(year){
+  statsCurrentYear = year;
+  statsUnitDetailName = null;
+  renderStatsYearChips();
+  if (statsCache[year]) {
+    renderStatsBody();
+  } else {
+    loadStats(year, renderStatsBody);
+  }
+}
+
+function setStatsTab(tab){
+  statsCurrentTab = tab;
+  statsUnitDetailName = null;
+  document.querySelectorAll('.stats-tab').forEach(function(btn){
+    btn.classList.toggle('active', btn.getAttribute('data-tab') === tab);
+  });
+  renderStatsBody();
+}
+
+function destroyStatsCharts(){
+  if (statsChartCat) { statsChartCat.destroy(); statsChartCat = null; }
+  if (statsChartTrend) { statsChartTrend.destroy(); statsChartTrend = null; }
+}
+
+function statsChartColors(){
+  var isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+  return {
+    text: isDark ? '#F1F0EC' : '#1F1F1F',
+    accent: isDark ? '#F29A00' : '#F39200',
+    grid: isDark ? 'rgba(240,238,230,0.08)' : 'rgba(31,31,31,0.08)'
+  };
+}
+
+function renderStatsBody(){
+  var data = statsCache[statsCurrentYear];
+  var body = document.getElementById('stats-body');
+  if (!body) return;
+  if (!data) { body.innerHTML = '<div class="search-loading">Завантажую статистику...</div>'; return; }
+
+  if (statsCurrentTab === 'gen') {
+    renderStatsGeneral(data);
+  } else if (statsCurrentTab === 'unit') {
+    if (statsUnitDetailName) loadStatsUnitDetail(statsUnitDetailName);
+    else renderStatsRankList(data.unitsTop10, 'unit');
+  } else if (statsCurrentTab === 'ppl') {
+    renderStatsRankList(data.peopleTop10, 'ppl');
+  }
+}
+
+function renderStatsGeneral(data){
+  destroyStatsCharts();
+  var body = document.getElementById('stats-body');
+  body.innerHTML = '';
+
+  var metric = document.createElement('div');
+  metric.className = 'card stats-metric-card';
+  metric.innerHTML = '<p class="stats-metric-label">Всього нагород' + (statsCurrentYear === 'all' ? ' (за весь час)' : ' (' + statsCurrentYear + ' рік)') + '</p><p class="stats-metric-value">' + data.total + '</p>';
+  body.appendChild(metric);
+
+  if (!data.categories || data.categories.length === 0) {
+    var empty = document.createElement('p');
+    empty.className = 'placeholder-note';
+    empty.textContent = 'Даних за цей період не знайдено.';
+    body.appendChild(empty);
+    return;
+  }
+
+  var chartCard = document.createElement('div');
+  chartCard.className = 'card chart-card';
+  var catChartHeight = Math.max(180, data.categories.length * 34);
+  chartCard.innerHTML = '<p class="card-title">По категоріях</p><div class="chart-wrap" style="height:' + catChartHeight + 'px;"><canvas id="stats-chart-cat"></canvas></div>';
+  body.appendChild(chartCard);
+
+  var hasTrend = statsCurrentYear === 'all' && data.trend && data.trend.length > 0;
+  if (hasTrend) {
+    var trendCard = document.createElement('div');
+    trendCard.className = 'card chart-card';
+    trendCard.innerHTML = '<p class="card-title">Динаміка по роках</p><div class="chart-wrap chart-wrap-trend"><canvas id="stats-chart-trend"></canvas></div>';
+    body.appendChild(trendCard);
+  }
+
+  var dlCard = document.createElement('div');
+  dlCard.className = 'card';
+  dlCard.innerHTML =
+    '<p class="card-title">Завантажити звіт</p>' +
+    '<div class="stats-download-row">' +
+    '<button class="btn-outline" id="stats-general-pdf-btn">PDF</button>' +
+    '<button class="btn-outline" id="stats-general-xlsx-btn">XLSX</button>' +
+    '</div>';
+  body.appendChild(dlCard);
+  dlCard.querySelector('#stats-general-pdf-btn').onclick = function(){
+    downloadStatsFile('statsGeneralPdf', null, 'pdfBase64', 'application/pdf', this);
+  };
+  dlCard.querySelector('#stats-general-xlsx-btn').onclick = function(){
+    downloadStatsFile('statsGeneralXlsx', null, 'xlsxBase64', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', this);
+  };
+
+  var colors = statsChartColors();
+
+  statsChartCat = new Chart(document.getElementById('stats-chart-cat'), {
+    type: 'bar',
+    data: {
+      labels: data.categories.slice().sort(function(a,b){return b.count-a.count;}).map(function(c){ return c.label; }),
+      datasets: [{ data: data.categories.slice().sort(function(a,b){return b.count-a.count;}).map(function(c){ return c.count; }), backgroundColor: colors.accent, borderRadius: 4 }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        datalabels: { anchor: 'end', align: 'right', color: colors.text, font: { weight: 'bold', size: 11 } }
+      },
+      scales: {
+        x: { ticks: { color: colors.text, font: { size: 10 } }, grid: { color: colors.grid }, grace: '10%' },
+        y: { ticks: { color: colors.text, font: { size: 10 }, autoSkip: false, callback: function(val){ return wrapChartLabel(this.getLabelForValue(val), 16); } }, grid: { display: false } }
+      }
+    },
+    plugins: [ChartDataLabels]
+  });
+
+  if (hasTrend) {
+    statsChartTrend = new Chart(document.getElementById('stats-chart-trend'), {
+      type: 'line',
+      data: {
+        labels: data.trend.map(function(t){ return t.year; }),
+        datasets: [{
+          data: data.trend.map(function(t){ return t.count; }),
+          borderColor: colors.accent, backgroundColor: colors.accent + '22',
+          fill: true, tension: 0.3, pointRadius: 4, pointBackgroundColor: colors.accent
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          datalabels: { align: 'top', color: colors.text, font: { weight: 'bold', size: 10 } }
+        },
+        scales: {
+          x: { ticks: { color: colors.text, font: { size: 10 } }, grid: { display: false } },
+          y: { ticks: { color: colors.text, font: { size: 10 } }, grid: { color: colors.grid }, grace: '20%' }
+        }
+      },
+      plugins: [ChartDataLabels]
+    });
+  }
+}
+
+function renderStatsRankList(list, kind){
+  destroyStatsCharts();
+  var body = document.getElementById('stats-body');
+  body.innerHTML = '';
+
+  if (!list || list.length === 0) {
+    body.innerHTML = '<p class="placeholder-note">Даних не знайдено' + (statsCurrentYear === 'all' ? '' : ' за ' + statsCurrentYear + ' рік') + '.</p>';
+    return;
+  }
+
+  var heading = document.createElement('p');
+  heading.className = 'card-title';
+  heading.textContent = kind === 'unit' ? 'Топ-10 підрозділів' : 'Топ-10 військовослужбовців';
+  body.appendChild(heading);
+
+  var card = document.createElement('div');
+  card.className = 'card';
+  card.style.padding = '4px 0';
+
+  list.forEach(function(item, i){
+    var row = document.createElement('div');
+    row.className = 'stats-rank-row';
+    var sub = kind === 'ppl' ? (item.unit || 'Підрозділ не вказано') : '';
+    row.innerHTML =
+      '<span class="stats-rank-num">' + (i + 1) + '</span>' +
+      '<div style="flex:1;min-width:0;">' +
+      '<p class="stats-rank-name"></p>' +
+      (sub ? '<p class="stats-rank-sub"></p>' : '') +
+      '</div>' +
+      '<span class="stats-rank-count"></span>';
+    row.querySelector('.stats-rank-name').textContent = item.name;
+    if (sub) row.querySelector('.stats-rank-sub').textContent = sub;
+    row.querySelector('.stats-rank-count').textContent = item.count;
+    row.onclick = (kind === 'unit')
+      ? (function(unitName){ return function(){ statsUnitDetailName = unitName; loadStatsUnitDetail(unitName); }; })(item.name)
+      : (function(personName){ return function(){ goToPersonFromStats(personName); }; })(item.name);
+    card.appendChild(row);
+  });
+
+  body.appendChild(card);
+
+  if (kind === 'unit') {
+    var allHeading = document.createElement('p');
+    allHeading.className = 'card-title';
+    allHeading.style.marginTop = '18px';
+    allHeading.textContent = 'Усі підрозділи';
+    body.appendChild(allHeading);
+
+    var allCard = document.createElement('div');
+    allCard.className = 'card';
+
+    var searchRow = document.createElement('div');
+    searchRow.className = 'search-input-row';
+    searchRow.style.marginBottom = '10px';
+    searchRow.innerHTML =
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>' +
+      '<input type="text" id="stats-unit-search-input" placeholder="Пошук підрозділу...">';
+    allCard.appendChild(searchRow);
+
+    var listWrap = document.createElement('div');
+    listWrap.id = 'stats-unit-all-list';
+    allCard.appendChild(listWrap);
+
+    body.appendChild(allCard);
+
+    searchRow.querySelector('#stats-unit-search-input').addEventListener('input', function(){
+      renderStatsUnitAllList(this.value.trim());
+    });
+    renderStatsUnitAllList('');
+  }
+}
+
+function renderStatsUnitAllList(query){
+  var container = document.getElementById('stats-unit-all-list');
+  if (!container) return;
+
+  var data = statsCache[statsCurrentYear];
+  var units = (data && data.units) || [];
+  var q = (query || '').toLowerCase();
+  var filtered = q ? units.filter(function(u){ return u.name.toLowerCase().indexOf(q) !== -1; }) : units;
+
+  if (filtered.length === 0) {
+    container.innerHTML = '<p class="placeholder-note" style="padding:16px 0;">Нічого не знайдено.</p>';
+    return;
+  }
+
+  container.innerHTML = '';
+  filtered.forEach(function(u){
+    var row = document.createElement('div');
+    row.className = 'stats-rank-row';
+    row.innerHTML =
+      '<div style="flex:1;min-width:0;"><p class="stats-rank-name"></p></div>' +
+      '<span class="stats-rank-count"></span>';
+    row.querySelector('.stats-rank-name').textContent = u.name;
+    row.querySelector('.stats-rank-count').textContent = u.count;
+    row.onclick = (function(name){ return function(){ statsUnitDetailName = name; loadStatsUnitDetail(name); }; })(u.name);
+    container.appendChild(row);
+  });
+}
+
+function goToPersonFromStats(name){
+  navigate('search');
+  var input = document.getElementById('search-input');
+  if (input) input.value = name;
+  performSearch();
+}
+
+function loadStatsUnitDetail(unitName){
+  destroyStatsCharts();
+  var body = document.getElementById('stats-body');
+  body.innerHTML = '<div class="search-loading">Завантажую дані підрозділу...</div>';
+
+  var url = API_BASE_URL + '?action=statsUnitDetail'
+    + '&code=' + encodeURIComponent(getAuthCode())
+    + '&unit=' + encodeURIComponent(unitName)
+    + '&year=' + encodeURIComponent(statsCurrentYear);
+
+  fetch(url)
+    .then(function(res){ return res.json(); })
+    .then(function(data){
+      if (!data || !data.ok) {
+        body.innerHTML = '<p class="placeholder-note">Не вдалося завантажити дані підрозділу.</p>';
+        return;
+      }
+      renderStatsUnitDetail(data);
+    })
+    .catch(function(){
+      body.innerHTML = '<p class="placeholder-note">Немає з\'єднання з сервером.</p>';
+    });
+}
+
+function renderStatsUnitDetail(data){
+  destroyStatsCharts();
+  var body = document.getElementById('stats-body');
+  body.innerHTML = '';
+
+  var headerRow = document.createElement('div');
+  headerRow.className = 'screen-header stats-detail-header';
+  headerRow.innerHTML =
+    '<button class="back-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg></button>' +
+    '<h2></h2>';
+  headerRow.querySelector('.back-btn').onclick = function(){ statsUnitDetailName = null; renderStatsBody(); };
+  headerRow.querySelector('h2').textContent = data.unit;
+  body.appendChild(headerRow);
+
+  var metric = document.createElement('div');
+  metric.className = 'card stats-metric-card';
+  metric.innerHTML = '<p class="stats-metric-label">Всього нагород' + (data.year === 'all' ? ' (за весь час)' : ' (' + data.year + ' рік)') + '</p><p class="stats-metric-value">' + data.total + '</p>';
+  body.appendChild(metric);
+
+  var chartCard = document.createElement('div');
+  chartCard.className = 'card chart-card';
+  var unitChartHeight = Math.max(180, data.categories.length * 34);
+  chartCard.innerHTML = '<p class="card-title">По категоріях</p><div class="chart-wrap" style="height:' + unitChartHeight + 'px;"><canvas id="stats-chart-unit"></canvas></div>';
+  body.appendChild(chartCard);
+
+  var hasUnitTrend = data.year === 'all' && data.trend && data.trend.length > 0;
+  if (hasUnitTrend) {
+    var trendCard = document.createElement('div');
+    trendCard.className = 'card chart-card';
+    trendCard.innerHTML = '<p class="card-title">Динаміка по роках</p><div class="chart-wrap chart-wrap-trend"><canvas id="stats-chart-unit-trend"></canvas></div>';
+    body.appendChild(trendCard);
+  }
+
+  var dlCard = document.createElement('div');
+  dlCard.className = 'card';
+  dlCard.innerHTML =
+    '<p class="card-title">Завантажити звіт</p>' +
+    '<div class="stats-download-row">' +
+    '<button class="btn-outline" id="stats-pdf-btn">PDF</button>' +
+    '<button class="btn-outline" id="stats-xlsx-btn">XLSX</button>' +
+    '</div>';
+  body.appendChild(dlCard);
+  dlCard.querySelector('#stats-pdf-btn').onclick = function(){
+    downloadStatsFile('statsUnitPdf', data.unit, 'pdfBase64', 'application/pdf', this);
+  };
+  dlCard.querySelector('#stats-xlsx-btn').onclick = function(){
+    downloadStatsFile('statsUnitXlsx', data.unit, 'xlsxBase64', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', this);
+  };
+
+  var colors = statsChartColors();
+
+  statsChartCat = new Chart(document.getElementById('stats-chart-unit'), {
+    type: 'bar',
+    data: {
+      labels: data.categories.slice().sort(function(a,b){return b.count-a.count;}).map(function(c){ return c.label; }),
+      datasets: [{ data: data.categories.slice().sort(function(a,b){return b.count-a.count;}).map(function(c){ return c.count; }), backgroundColor: colors.accent, borderRadius: 4 }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        datalabels: { anchor: 'end', align: 'right', color: colors.text, font: { weight: 'bold', size: 11 } }
+      },
+      scales: {
+        x: { ticks: { color: colors.text, font: { size: 10 } }, grid: { color: colors.grid }, grace: '10%' },
+        y: { ticks: { color: colors.text, font: { size: 10 }, autoSkip: false, callback: function(val){ return wrapChartLabel(this.getLabelForValue(val), 16); } }, grid: { display: false } }
+      }
+    },
+    plugins: [ChartDataLabels]
+  });
+
+  if (hasUnitTrend) {
+    statsChartTrend = new Chart(document.getElementById('stats-chart-unit-trend'), {
+      type: 'line',
+      data: {
+        labels: data.trend.map(function(t){ return t.year; }),
+        datasets: [{
+          data: data.trend.map(function(t){ return t.count; }),
+          borderColor: colors.accent, backgroundColor: colors.accent + '22',
+          fill: true, tension: 0.3, pointRadius: 4, pointBackgroundColor: colors.accent
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          datalabels: { align: 'top', color: colors.text, font: { weight: 'bold', size: 10 } }
+        },
+        scales: {
+          x: { ticks: { color: colors.text, font: { size: 10 } }, grid: { display: false } },
+          y: { ticks: { color: colors.text, font: { size: 10 } }, grid: { color: colors.grid }, grace: '20%' }
+        }
+      },
+      plugins: [ChartDataLabels]
+    });
+  }
+}
+
+function downloadStatsFile(action, unitName, field, mime, btn){
+  var originalText = btn.textContent;
+  btn.textContent = 'Формую...';
+  btn.disabled = true;
+
+  var url = API_BASE_URL + '?action=' + action
+    + '&code=' + encodeURIComponent(getAuthCode())
+    + '&year=' + encodeURIComponent(statsCurrentYear)
+    + (unitName ? '&unit=' + encodeURIComponent(unitName) : '');
+
+  fetch(url)
+    .then(function(res){ return res.json(); })
+    .then(function(data){
+      if (!data || !data.ok) {
+        btn.textContent = originalText;
+        btn.disabled = false;
+        alert('Не вдалося сформувати файл' + (data && data.error ? ': ' + data.error : '. Спробуйте ще раз.'));
+        return;
+      }
+
+      var byteArray = byteArrayFromBase64(data[field]);
+      var filename = data.filename || 'Звіт';
+      downloadBlobFallback(byteArray, filename, mime);
+      btn.textContent = '✓ Завантажено';
+      setTimeout(function(){
+        btn.textContent = originalText;
+        btn.disabled = false;
+      }, 1500);
+    })
+    .catch(function(err){
+      btn.textContent = originalText;
+      btn.disabled = false;
+      alert('Немає з\'єднання з сервером: ' + err);
+    });
+}
+
+// ---------- Реєстрація Service Worker ----------
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('sw.js').catch(function(err){
+      console.warn('SW registration failed:', err);
+    });
+  });
+}
+</script>
+</body>
+</html>
