@@ -1425,6 +1425,7 @@ function loadDigest(){
 
 function openDigest(){
   navigate('digest');
+  logPwaView('digest');
   var body = document.getElementById('digest-body');
 
   function render(){
@@ -1543,7 +1544,7 @@ function openAdminStats(){
 
       if (data.weeklyLog) {
         var wl = data.weeklyLog;
-        html += '<div class="card">';
+        html += '<div class="card" style="margin-top:18px;">';
         html += '<p class="card-title">Активність за 7 днів</p>';
         html += '<p class="body-note" style="margin-top:8px;">Унікальних користувачів: <b>' + wl.uniqueUsers + '</b></p>';
         html += '<p class="body-note" style="margin-top:6px;">Всього дій: <b>' + wl.totalActions + '</b></p>';
