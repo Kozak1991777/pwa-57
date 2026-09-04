@@ -483,6 +483,28 @@ nav.bottombar button.active .indicator{
   font-size:8.5px;font-weight:700;letter-spacing:0.01em;padding:6px 7px;text-transform:uppercase;
 }
 .admin-delete-stack svg{width:16px;height:16px;}
+.admin-qr-btn{
+  flex-shrink:0;width:40px;height:40px;border-radius:8px;background:transparent;
+  border:1px solid var(--zoloto-muted);color:var(--zoloto-muted);
+  display:flex;align-items:center;justify-content:center;
+}
+.admin-qr-btn svg{width:20px;height:20px;}
+
+/* Модалка "Посилання / QR" для вже існуючого користувача */
+#user-link-overlay{
+  position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.55);
+  display:none;align-items:center;justify-content:center;padding:24px;
+}
+#user-link-overlay.show{display:flex;}
+.user-link-box{
+  background:var(--surface-1);border-radius:14px;padding:22px 20px;max-width:320px;width:100%;
+  text-align:center;
+}
+.user-link-box h3{font-size:15px;margin:0 0 14px;text-transform:uppercase;letter-spacing:0.02em;}
+.user-link-box .user-link-qr{display:flex;justify-content:center;margin-bottom:14px;background:#fff;border-radius:8px;padding:12px;}
+.user-link-box p{font-size:12px;word-break:break-all;color:var(--text-secondary);margin:0 0 14px;}
+.user-link-box button{width:100%;height:42px;border-radius:8px;font-size:13px;font-weight:700;border:1px solid var(--border);background:var(--surface-2);color:var(--text-primary);}
+.user-link-box button.close-link-btn{margin-top:8px;}
 
 /* offline banner */
 #offline-banner{
@@ -547,6 +569,17 @@ nav.bottombar button.active .indicator{
       <button onclick="closeCustomConfirm(false)">Скасувати</button>
       <button class="confirm-yes" onclick="closeCustomConfirm(true)">Так</button>
     </div>
+  </div>
+</div>
+
+<!-- Посилання / QR для вже існуючого користувача (адмін-панель) -->
+<div id="user-link-overlay">
+  <div class="user-link-box">
+    <h3 id="user-link-title"></h3>
+    <div class="user-link-qr" id="user-link-qr"></div>
+    <p id="user-link-text"></p>
+    <button onclick="copyUserLinkModal()">Скопіювати посилання</button>
+    <button class="close-link-btn" onclick="closeUserLinkModal()">Закрити</button>
   </div>
 </div>
 
@@ -1082,7 +1115,7 @@ const LOCK_PIN_LENGTH_KEY = 'nagorody_lock_pin_length';
 
 var lockCurrentPinEntry = '';
 var lockLastHiddenAt = 0;
-var LOCK_GRACE_MS = 60000; // 60 секунд — швидке перемикання застосунків не вимагає повторного вводу PIN
+var LOCK_GRACE_MS = 120000; // 2 хвилини — швидке перемикання застосунків не вимагає повторного вводу PIN
 
 function isAppLockEnabled(){
   return localStorage.getItem(LOCK_ENABLED_KEY) === '1';
@@ -1475,6 +1508,7 @@ function openAdminStats(){
       var peopleIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M2 20c0-3.3 3.1-6 7-6s7 2.7 7 6"/><circle cx="17" cy="8" r="2.5"/><path d="M15.5 14.2c2.9.6 4.5 2.6 4.5 5.8"/></svg>';
       var calendarIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4.5" width="18" height="16.5" rx="2.5"/><path d="M16 2.5v4M8 2.5v4M3 10h18"/></svg>';
       var trashIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4.5A1.5 1.5 0 0110.5 3h3A1.5 1.5 0 0115 4.5V7m2 0v13a2 2 0 01-2 2H9a2 2 0 01-2-2V7"/></svg>';
+      var qrIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v3M14 20h3M20 20v.01"/></svg>';
 
       function buildUserRow(u, isActive, metaHtml){
         return '<div class="admin-user-row' + (isActive ? ' is-active' : '') + '">' +
@@ -1484,11 +1518,11 @@ function openAdminStats(){
           '<span class="admin-user-unit-pill">' + escapeHtml(u.unit) + '</span>' +
           '<div class="admin-user-meta">' + calendarIcon + '<span>' + metaHtml + '</span></div>' +
           '</div>' +
+          '<button class="admin-qr-btn" onclick="showAdminUserLink(\'' + escapeHtml(u.id) + '\', \'' + escapeHtml(u.name).replace(/'/g, "\\'") + '\')" title="Посилання / QR">' + qrIcon + '</button>' +
           '<button class="admin-delete-stack" onclick="confirmAdminDeleteUser(\'' + escapeHtml(u.id) + '\', \'' + escapeHtml(u.name).replace(/'/g, "\\'") + '\')">' + trashIcon + '<span>Видалити</span></button>' +
           '</div>';
       }
 
-      html += '<div class="card">';
       html += '<div class="admin-section-title"><div class="icon-wrap">' + peopleIcon + '</div><p class="card-title" style="margin:0;">Активні за 7 днів (' + data.active.length + ')</p></div>';
       if (data.active.length === 0) {
         html += '<p class="body-note">Немає активних користувачів за останній тиждень.</p>';
@@ -1497,10 +1531,8 @@ function openAdminStats(){
           html += buildUserRow(data.active[a], true, escapeHtml(data.active[a].lastSeenLabel));
         }
       }
-      html += '</div>';
 
-      html += '<div class="card">';
-      html += '<div class="admin-section-title"><div class="icon-wrap">' + peopleIcon + '</div><p class="card-title" style="margin:0;">Неактивні (' + data.inactive.length + ')</p></div>';
+      html += '<div class="admin-section-title" style="margin-top:18px;"><div class="icon-wrap">' + peopleIcon + '</div><p class="card-title" style="margin:0;">Неактивні (' + data.inactive.length + ')</p></div>';
       if (data.inactive.length === 0) {
         html += '<p class="body-note">Усі користувачі заходили протягом останнього тижня.</p>';
       } else {
@@ -1508,7 +1540,6 @@ function openAdminStats(){
           html += buildUserRow(data.inactive[n], false, escapeHtml(data.inactive[n].statusLabel));
         }
       }
-      html += '</div>';
 
       if (data.weeklyLog) {
         var wl = data.weeklyLog;
@@ -1608,6 +1639,41 @@ function confirmAdminDeleteUser(id, name){
         showCustomConfirm('Немає з\'єднання з сервером.', function(){});
       });
   });
+}
+
+function showAdminUserLink(id, name){
+  document.getElementById('user-link-title').textContent = name;
+  document.getElementById('user-link-qr').innerHTML = '';
+  document.getElementById('user-link-text').textContent = 'Завантаження...';
+  document.getElementById('user-link-overlay').classList.add('show');
+
+  var url = API_BASE_URL + '?action=adminGetUserLink&code=' + encodeURIComponent(getAuthCode()) + '&targetId=' + encodeURIComponent(id);
+  fetch(url)
+    .then(function(res){ return res.json(); })
+    .then(function(data){
+      if (data && data.ok) {
+        document.getElementById('user-link-text').textContent = data.link;
+        if (window.QRCode) {
+          new QRCode(document.getElementById('user-link-qr'), { text: data.link, width: 176, height: 176 });
+        }
+      } else {
+        document.getElementById('user-link-text').textContent = 'Не вдалося отримати посилання.';
+      }
+    })
+    .catch(function(){
+      document.getElementById('user-link-text').textContent = 'Немає з\'єднання з сервером.';
+    });
+}
+
+function copyUserLinkModal(){
+  var text = document.getElementById('user-link-text').textContent;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text);
+  }
+}
+
+function closeUserLinkModal(){
+  document.getElementById('user-link-overlay').classList.remove('show');
 }
 
 // Технічний пінг для статичних екранів (Документи/Як нагородити), які самі
