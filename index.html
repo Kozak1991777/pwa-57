@@ -257,6 +257,7 @@ main{flex:1;overflow-y:auto;padding:clamp(6px, 2vh, 16px) 16px calc(90px + var(-
 .body-note{color:var(--text-secondary);font-size:13px;line-height:1.55;margin:0;text-align:justify;}
 .digest-card{text-align:center;}
 .digest-card .body-note{text-align:center;}
+#screen-howto .body-note{text-indent:1.4em;}
 .howto-list{margin:8px 0 0;padding-left:20px;color:var(--text-secondary);font-size:13px;line-height:1.6;text-align:left;}
 .howto-list li{margin-bottom:4px;}
 
@@ -757,7 +758,7 @@ nav.bottombar button.active .indicator{
       <div class="card">
         <p class="card-title">Категорії нагород</p>
         <p class="body-note">Існують наступні категорії нагород, які отримують наші військовослужбовці. За спадною значимістю їх можна умовно розподілити так:</p>
-        <p class="body-note" style="margin-top:8px;">Найвищі за значимістю відзнаки:</p>
+        <p class="body-note" style="margin-top:8px;">Найвищі за значимістю:</p>
         <ol class="howto-list">
           <li>Державні нагороди.</li>
           <li>Нагороди Міністерства оборони України.</li>
@@ -839,8 +840,7 @@ nav.bottombar button.active .indicator{
           <button class="theme-btn active" style="width:100%;margin-top:10px;" onclick="saveLockSetup()">Зберегти захист</button>
         </div>
 
-        <button class="theme-btn" style="width:100%;margin-top:8px;display:none;" onclick="showChangePinForm()" id="app-lock-change-btn">Змінити PIN</button>
-        <button class="theme-btn active" style="width:100%;margin-top:10px;" onclick="toggleAppLockEnable()" id="app-lock-enable-btn">Увімкнути захист входу</button>
+        <button class="theme-btn active" style="width:100%;margin-top:8px;" onclick="showChangePinForm()" id="app-lock-change-btn">Змінити PIN</button>
       </div>
 
       <a class="row-card" id="admin-menu-item" style="display:none;text-decoration:none;color:inherit;" onclick="navigate('admin')">
@@ -1081,7 +1081,8 @@ const LOCK_PIN_HASH_KEY = 'nagorody_lock_pin_hash';
 const LOCK_PIN_LENGTH_KEY = 'nagorody_lock_pin_length';
 
 var lockCurrentPinEntry = '';
-var lockUnlockedThisForeground = false;
+var lockLastHiddenAt = 0;
+var LOCK_GRACE_MS = 60000; // 60 секунд — швидке перемикання застосунків не вимагає повторного вводу PIN
 
 function isAppLockEnabled(){
   return localStorage.getItem(LOCK_ENABLED_KEY) === '1';
@@ -1099,20 +1100,10 @@ async function sha256Hex(text){
 // ---------- Налаштування (екран "Налаштування") ----------
 function refreshAppLockSettingsUI(){
   var statusEl = document.getElementById('app-lock-status');
-  var enableBtn = document.getElementById('app-lock-enable-btn');
-  var changeBtn = document.getElementById('app-lock-change-btn');
   var setupArea = document.getElementById('app-lock-setup-area');
 
-  if (isAppLockEnabled()) {
-    statusEl.textContent = 'Увімкнено: PIN-код (' + getLockPinLength() + ' цифр)';
-    enableBtn.textContent = 'Вимкнути захист входу';
-    changeBtn.style.display = 'block';
-    setupArea.style.display = 'none';
-  } else {
-    statusEl.textContent = 'Вимкнено';
-    enableBtn.textContent = 'Увімкнути захист входу';
-    changeBtn.style.display = 'none';
-  }
+  statusEl.textContent = 'Увімкнено: PIN-код (' + getLockPinLength() + ' цифр)';
+  setupArea.style.display = 'none';
 }
 
 function showChangePinForm(){
@@ -1136,21 +1127,6 @@ function closeCustomConfirm(confirmed){
   var cb = customConfirmCallback;
   customConfirmCallback = null;
   if (confirmed && cb) cb();
-}
-
-function toggleAppLockEnable(){
-  if (isAppLockEnabled()) {
-    showCustomConfirm('Вимкнути захист входу на цьому пристрої?', function(){
-      localStorage.removeItem(LOCK_ENABLED_KEY);
-      localStorage.removeItem(LOCK_PIN_HASH_KEY);
-      localStorage.removeItem(LOCK_PIN_LENGTH_KEY);
-      refreshAppLockSettingsUI();
-    });
-    return;
-  }
-  // Ще не увімкнено — показуємо форму встановлення PIN
-  document.getElementById('app-lock-setup-area').style.display = 'block';
-  document.getElementById('lock-setup-error').style.display = 'none';
 }
 
 async function saveLockSetup(){
@@ -1192,7 +1168,7 @@ function showLockGate(){
 
 function hideLockGate(){
   document.getElementById('lock-gate').classList.remove('show');
-  lockUnlockedThisForeground = true;
+  lockLastHiddenAt = Date.now(); // старт пільгового періоду з моменту розблокування
 }
 
 function renderLockPinDots(){
@@ -1268,15 +1244,18 @@ async function handleLockKeyPress(key){
   }
 }
 
-// Перевіряємо замок при кожному поверненні застосунку "на передній план"
-// (перемикання вкладок/додатків) — не лише при першому відкритті.
+// Перевіряємо замок при поверненні застосунку "на передній план" — але лише
+// якщо застосунок був згорнутий довше пільгового періоду (LOCK_GRACE_MS).
+// Швидке перемикання додатків/вкладок (наприклад, щоб скопіювати щось і
+// повернутись) не вимагає повторного вводу PIN.
 document.addEventListener('visibilitychange', function(){
   if (document.visibilityState === 'visible') {
-    if (isAppLockEnabled() && !lockUnlockedThisForeground && document.getElementById('app').style.display !== 'none') {
+    var elapsed = Date.now() - lockLastHiddenAt;
+    if (isAppLockEnabled() && elapsed > LOCK_GRACE_MS && document.getElementById('app').style.display !== 'none') {
       showLockGate();
     }
   } else {
-    lockUnlockedThisForeground = false;
+    lockLastHiddenAt = Date.now();
   }
 });
 
@@ -1489,7 +1468,7 @@ function openAdminStats(){
       var html =
         '<div class="card">' +
         '<p class="card-title">Всього користувачів</p>' +
-        '<p class="stats-metric-value">' + data.total + '</p>' +
+        '<p class="stats-metric-value" style="text-align:center;">' + data.total + '</p>' +
         '</div>';
 
       var personIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>';
