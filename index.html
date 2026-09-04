@@ -255,6 +255,8 @@ main{flex:1;overflow-y:auto;padding:clamp(6px, 2vh, 16px) 16px calc(90px + var(-
   text-align:center;color:var(--text-muted);font-size:12px;padding:40px 20px;line-height:1.6;
 }
 .body-note{color:var(--text-secondary);font-size:13px;line-height:1.55;margin:0;text-align:justify;}
+.digest-card{text-align:center;}
+.digest-card .body-note{text-align:center;}
 .howto-list{margin:8px 0 0;padding-left:20px;color:var(--text-secondary);font-size:13px;line-height:1.6;text-align:left;}
 .howto-list li{margin-bottom:4px;}
 
@@ -460,26 +462,26 @@ nav.bottombar button.active .indicator{
   border:1px solid var(--border-soft);border-radius:10px;padding:10px 12px;margin-top:10px;
 }
 .admin-user-avatar{
-  width:44px;height:44px;flex-shrink:0;border-radius:9px;background:var(--surface-1);
+  width:48px;height:48px;flex-shrink:0;border-radius:9px;background:var(--surface-1);
   display:flex;align-items:center;justify-content:center;color:var(--zoloto-muted);
 }
 .admin-user-row.is-active .admin-user-avatar{color:var(--zoloto);}
-.admin-user-avatar svg{width:24px;height:24px;}
+.admin-user-avatar svg{width:28px;height:28px;}
 .admin-user-info{flex:1;min-width:0;}
-.admin-user-name{font-size:14.5px;font-weight:800;margin:0 0 5px;}
+.admin-user-name{font-size:14.5px;font-weight:800;margin:0 0 2px;line-height:1.2;}
 .admin-user-unit-pill{
   display:inline-block;font-size:10.5px;font-weight:700;color:var(--zoloto-muted);
   background:var(--surface-1);border:1px solid var(--border-soft);border-radius:6px;
-  padding:2px 8px;margin-bottom:5px;
+  padding:2px 8px;margin-bottom:4px;
 }
 .admin-user-meta{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--text-secondary);}
 .admin-user-meta svg{width:13px;height:13px;flex-shrink:0;}
 .admin-delete-stack{
-  flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:3px;
+  flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:2px;
   background:transparent;border:1px solid #C0392B;color:#C0392B;border-radius:8px;
-  font-size:9.5px;font-weight:700;letter-spacing:0.02em;padding:8px 10px;text-transform:uppercase;
+  font-size:8.5px;font-weight:700;letter-spacing:0.01em;padding:6px 7px;text-transform:uppercase;
 }
-.admin-delete-stack svg{width:18px;height:18px;}
+.admin-delete-stack svg{width:16px;height:16px;}
 
 /* offline banner */
 #offline-banner{
@@ -1423,7 +1425,7 @@ function openDigest(){
       return;
     }
     body.innerHTML =
-      '<div class="card">' +
+      '<div class="card digest-card">' +
       '<p style="font-size:19px;font-weight:800;color:var(--zoloto);text-transform:uppercase;letter-spacing:0.02em;margin:0 0 2px;">Дайджест нагород</p>' +
       '<p class="body-note" style="margin:0 0 16px;">' + escapeHtml(digestData.monthLabel) + '</p>' +
 
