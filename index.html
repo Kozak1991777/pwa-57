@@ -447,6 +447,40 @@ nav.bottombar button.active .indicator{
 .custom-confirm-actions button.confirm-yes{background:var(--zoloto);color:var(--zoloto-on);border-color:var(--zoloto);}
 .admin-delete-btn{flex-shrink:0;background:transparent;border:1px solid #C0392B;color:#C0392B;border-radius:6px;font-size:11px;font-weight:700;padding:5px 10px;}
 
+/* Адмін-панель — картки користувачів (активні/неактивні) */
+.admin-section-title{display:flex;align-items:center;gap:10px;margin:0 0 12px;}
+.admin-section-title .icon-wrap{
+  width:28px;height:28px;flex-shrink:0;border-radius:8px;background:var(--surface-2);
+  display:flex;align-items:center;justify-content:center;color:var(--zoloto-muted);
+}
+.admin-section-title .icon-wrap svg{width:15px;height:15px;}
+.admin-section-title p{margin:0;}
+.admin-user-row{
+  display:flex;align-items:center;gap:12px;background:var(--surface-2);
+  border:1px solid var(--border-soft);border-radius:10px;padding:10px 12px;margin-top:10px;
+}
+.admin-user-avatar{
+  width:44px;height:44px;flex-shrink:0;border-radius:9px;background:var(--surface-1);
+  display:flex;align-items:center;justify-content:center;color:var(--zoloto-muted);
+}
+.admin-user-row.is-active .admin-user-avatar{color:var(--zoloto);}
+.admin-user-avatar svg{width:24px;height:24px;}
+.admin-user-info{flex:1;min-width:0;}
+.admin-user-name{font-size:14.5px;font-weight:800;margin:0 0 5px;}
+.admin-user-unit-pill{
+  display:inline-block;font-size:10.5px;font-weight:700;color:var(--zoloto-muted);
+  background:var(--surface-1);border:1px solid var(--border-soft);border-radius:6px;
+  padding:2px 8px;margin-bottom:5px;
+}
+.admin-user-meta{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--text-secondary);}
+.admin-user-meta svg{width:13px;height:13px;flex-shrink:0;}
+.admin-delete-stack{
+  flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:3px;
+  background:transparent;border:1px solid #C0392B;color:#C0392B;border-radius:8px;
+  font-size:9.5px;font-weight:700;letter-spacing:0.02em;padding:8px 10px;text-transform:uppercase;
+}
+.admin-delete-stack svg{width:18px;height:18px;}
+
 /* offline banner */
 #offline-banner{
   display:none;background:var(--zoloto);color:var(--zoloto-on);text-align:center;
@@ -1456,32 +1490,41 @@ function openAdminStats(){
         '<p class="stats-metric-value">' + data.total + '</p>' +
         '</div>';
 
+      var personIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>';
+      var peopleIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M2 20c0-3.3 3.1-6 7-6s7 2.7 7 6"/><circle cx="17" cy="8" r="2.5"/><path d="M15.5 14.2c2.9.6 4.5 2.6 4.5 5.8"/></svg>';
+      var calendarIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4.5" width="18" height="16.5" rx="2.5"/><path d="M16 2.5v4M8 2.5v4M3 10h18"/></svg>';
+      var trashIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4.5A1.5 1.5 0 0110.5 3h3A1.5 1.5 0 0115 4.5V7m2 0v13a2 2 0 01-2 2H9a2 2 0 01-2-2V7"/></svg>';
+
+      function buildUserRow(u, isActive, metaHtml){
+        return '<div class="admin-user-row' + (isActive ? ' is-active' : '') + '">' +
+          '<div class="admin-user-avatar">' + personIcon + '</div>' +
+          '<div class="admin-user-info">' +
+          '<p class="admin-user-name">' + escapeHtml(u.name) + '</p>' +
+          '<span class="admin-user-unit-pill">' + escapeHtml(u.unit) + '</span>' +
+          '<div class="admin-user-meta">' + calendarIcon + '<span>' + metaHtml + '</span></div>' +
+          '</div>' +
+          '<button class="admin-delete-stack" onclick="confirmAdminDeleteUser(\'' + escapeHtml(u.id) + '\', \'' + escapeHtml(u.name).replace(/'/g, "\\'") + '\')">' + trashIcon + '<span>Видалити</span></button>' +
+          '</div>';
+      }
+
       html += '<div class="card">';
-      html += '<p class="card-title">Активні за 7 днів (' + data.active.length + ')</p>';
+      html += '<div class="admin-section-title"><div class="icon-wrap">' + peopleIcon + '</div><p class="card-title" style="margin:0;">Активні за 7 днів (' + data.active.length + ')</p></div>';
       if (data.active.length === 0) {
         html += '<p class="body-note">Немає активних користувачів за останній тиждень.</p>';
       } else {
         for (var a = 0; a < data.active.length; a++) {
-          var u = data.active[a];
-          html += '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:' + (a === 0 ? '8px' : '10px') + ';">' +
-            '<p class="body-note" style="margin:0;"><b>' + escapeHtml(u.name) + '</b> (' + escapeHtml(u.unit) + ') — ' + escapeHtml(u.lastSeenLabel) + '</p>' +
-            '<button class="admin-delete-btn" onclick="confirmAdminDeleteUser(\'' + escapeHtml(u.id) + '\', \'' + escapeHtml(u.name).replace(/'/g, "\\'") + '\')">Видалити</button>' +
-            '</div>';
+          html += buildUserRow(data.active[a], true, escapeHtml(data.active[a].lastSeenLabel));
         }
       }
       html += '</div>';
 
       html += '<div class="card">';
-      html += '<p class="card-title">Неактивні (' + data.inactive.length + ')</p>';
+      html += '<div class="admin-section-title"><div class="icon-wrap">' + peopleIcon + '</div><p class="card-title" style="margin:0;">Неактивні (' + data.inactive.length + ')</p></div>';
       if (data.inactive.length === 0) {
         html += '<p class="body-note">Усі користувачі заходили протягом останнього тижня.</p>';
       } else {
         for (var n = 0; n < data.inactive.length; n++) {
-          var iu = data.inactive[n];
-          html += '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:' + (n === 0 ? '8px' : '10px') + ';">' +
-            '<p class="body-note" style="margin:0;">' + escapeHtml(iu.name) + ' (' + escapeHtml(iu.unit) + ') — ' + escapeHtml(iu.statusLabel) + '</p>' +
-            '<button class="admin-delete-btn" onclick="confirmAdminDeleteUser(\'' + escapeHtml(iu.id) + '\', \'' + escapeHtml(iu.name).replace(/'/g, "\\'") + '\')">Видалити</button>' +
-            '</div>';
+          html += buildUserRow(data.inactive[n], false, escapeHtml(data.inactive[n].statusLabel));
         }
       }
       html += '</div>';
