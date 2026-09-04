@@ -322,9 +322,9 @@ main{flex:1;overflow-y:auto;padding:clamp(6px, 2vh, 16px) 16px calc(90px + var(-
 .stats-chip.active{background:var(--zoloto);color:var(--zoloto-on);border-color:var(--zoloto);}
 .stats-tabs{display:flex;gap:6px;margin-bottom:14px;}
 .stats-tab{
-  flex:1;height:38px;border-radius:7px;border:1px solid var(--border-soft);background:var(--surface-1);
-  color:var(--text-secondary);font-family:inherit;font-size:13px;font-weight:600;text-transform:uppercase;
-  letter-spacing:0.01em;cursor:pointer;
+  flex:1;min-height:38px;border-radius:7px;border:1px solid var(--border-soft);background:var(--surface-1);
+  color:var(--text-secondary);font-family:inherit;font-size:11px;font-weight:600;text-transform:uppercase;
+  letter-spacing:0.01em;cursor:pointer;padding:6px 2px;white-space:normal;line-height:1.25;
 }
 .stats-tab.active{background:var(--zoloto);color:var(--zoloto-on);border-color:var(--zoloto);}
 .stats-metric-card{margin-bottom:14px;}
@@ -695,6 +695,7 @@ nav.bottombar button.active .indicator{
         <button class="stats-tab active" data-tab="gen" onclick="setStatsTab('gen')">Загальна</button>
         <button class="stats-tab" data-tab="unit" onclick="setStatsTab('unit')">Підрозділи</button>
         <button class="stats-tab" data-tab="ppl" onclick="setStatsTab('ppl')">Люди</button>
+        <button class="stats-tab" data-tab="awd" onclick="setStatsTab('awd')">За нагородами</button>
       </div>
 
       <div id="stats-body"><div class="search-loading">Завантажую статистику...</div></div>
@@ -2218,14 +2219,19 @@ function wrapChartLabel(str, maxLen){
 
 var statsCache = {};            // year ("all" | "2025" тощо) -> дані з action=stats
 var statsCurrentYear = 'all';
-var statsCurrentTab = 'gen';    // 'gen' | 'unit' | 'ppl'
+var statsCurrentTab = 'gen';    // 'gen' | 'unit' | 'ppl' | 'awd'
 var statsUnitDetailName = null; // якщо задано — показуємо деталі підрозділу замість списку
+var statsAwardOptionsCache = {}; // year -> [{category, categoryLabel, awardName, count}]
+var statsAwardOptionsCurrentList = [];
+var statsAwardSelected = null;   // {category, awardName, categoryLabel} — обрана нагорода для перегляду списку нагороджених
+var statsAwardRecipientsCache = {}; // "year||category||awardName" -> дані з action=statsAwardRecipients
 var statsChartCat = null;
 var statsChartTrend = null;
 
 function openStats(){
   statsCurrentTab = 'gen';
   statsUnitDetailName = null;
+  statsAwardSelected = null;
   document.querySelectorAll('.stats-tab').forEach(function(btn){
     btn.classList.toggle('active', btn.getAttribute('data-tab') === 'gen');
   });
@@ -2286,6 +2292,7 @@ function renderStatsYearChips(){
 function setStatsYear(year){
   statsCurrentYear = year;
   statsUnitDetailName = null;
+  statsAwardSelected = null;
   renderStatsYearChips();
   if (statsCache[year]) {
     renderStatsBody();
@@ -2297,6 +2304,7 @@ function setStatsYear(year){
 function setStatsTab(tab){
   statsCurrentTab = tab;
   statsUnitDetailName = null;
+  statsAwardSelected = null;
   document.querySelectorAll('.stats-tab').forEach(function(btn){
     btn.classList.toggle('active', btn.getAttribute('data-tab') === tab);
   });
@@ -2330,7 +2338,131 @@ function renderStatsBody(){
     else renderStatsRankList(data.unitsTop10, 'unit');
   } else if (statsCurrentTab === 'ppl') {
     renderStatsRankList(data.peopleTop10, 'ppl');
+  } else if (statsCurrentTab === 'awd') {
+    renderStatsAwardsTab();
   }
+}
+
+// ---------- Вкладка "За нагородами" ----------
+function renderStatsAwardsTab(){
+  var body = document.getElementById('stats-body');
+  destroyStatsCharts();
+
+  if (statsAwardSelected) {
+    var key = statsCurrentYear + '||' + statsAwardSelected.category + '||' + statsAwardSelected.awardName;
+    if (statsAwardRecipientsCache[key]) {
+      renderStatsAwardRecipientsList(statsAwardRecipientsCache[key]);
+    } else {
+      body.innerHTML = '<div class="search-loading">Завантажую список нагороджених...</div>';
+      var url = API_BASE_URL + '?action=statsAwardRecipients&code=' + encodeURIComponent(getAuthCode())
+        + '&year=' + encodeURIComponent(statsCurrentYear)
+        + '&category=' + encodeURIComponent(statsAwardSelected.category)
+        + '&awardName=' + encodeURIComponent(statsAwardSelected.awardName);
+      fetch(url)
+        .then(function(res){ return res.json(); })
+        .then(function(data){
+          if (!data || !data.ok) { body.innerHTML = '<p class="placeholder-note">Не вдалося завантажити список.</p>'; return; }
+          statsAwardRecipientsCache[key] = data;
+          renderStatsAwardRecipientsList(data);
+        })
+        .catch(function(){ body.innerHTML = '<p class="placeholder-note">Немає з\'єднання з сервером.</p>'; });
+    }
+    return;
+  }
+
+  if (statsAwardOptionsCache[statsCurrentYear]) {
+    renderStatsAwardOptionsList(statsAwardOptionsCache[statsCurrentYear]);
+    return;
+  }
+
+  body.innerHTML = '<div class="search-loading">Завантажую список нагород...</div>';
+  var optUrl = API_BASE_URL + '?action=statsAwardOptions&code=' + encodeURIComponent(getAuthCode()) + '&year=' + encodeURIComponent(statsCurrentYear);
+  fetch(optUrl)
+    .then(function(res){ return res.json(); })
+    .then(function(data){
+      if (!data || !data.ok) { body.innerHTML = '<p class="placeholder-note">Не вдалося завантажити список нагород.</p>'; return; }
+      statsAwardOptionsCache[statsCurrentYear] = data.awards;
+      renderStatsAwardOptionsList(data.awards);
+    })
+    .catch(function(){ body.innerHTML = '<p class="placeholder-note">Немає з\'єднання з сервером.</p>'; });
+}
+
+function renderStatsAwardOptionsList(awards){
+  destroyStatsCharts();
+  var body = document.getElementById('stats-body');
+  body.innerHTML = '';
+  statsAwardOptionsCurrentList = awards || [];
+
+  if (!awards || awards.length === 0) {
+    body.innerHTML = '<p class="placeholder-note">Немає даних за цей період.</p>';
+    return;
+  }
+
+  var heading = document.createElement('p');
+  heading.className = 'card-title';
+  heading.textContent = 'Нагороди (' + awards.length + ')';
+  body.appendChild(heading);
+
+  var card = document.createElement('div');
+  card.className = 'card';
+  card.style.padding = '4px 0';
+
+  awards.forEach(function(a, idx){
+    var row = document.createElement('div');
+    row.className = 'stats-rank-row';
+    row.innerHTML =
+      '<div style="flex:1;min-width:0;">' +
+      '<p class="stats-rank-name" style="white-space:normal;"></p>' +
+      '<p class="stats-rank-sub"></p>' +
+      '</div>' +
+      '<span class="stats-rank-count"></span>';
+    row.querySelector('.stats-rank-name').textContent = a.awardName;
+    row.querySelector('.stats-rank-sub').textContent = a.categoryLabel;
+    row.querySelector('.stats-rank-count').textContent = a.count;
+    row.onclick = (function(index){ return function(){ selectStatsAward(index); }; })(idx);
+    card.appendChild(row);
+  });
+
+  body.appendChild(card);
+}
+
+function selectStatsAward(idx){
+  var a = statsAwardOptionsCurrentList[idx];
+  if (!a) return;
+  statsAwardSelected = { category: a.category, awardName: a.awardName, categoryLabel: a.categoryLabel };
+  renderStatsBody();
+}
+
+function backToStatsAwardList(){
+  statsAwardSelected = null;
+  renderStatsBody();
+}
+
+function renderStatsAwardRecipientsList(data){
+  var body = document.getElementById('stats-body');
+  var html =
+    '<button class="back-btn" style="margin-bottom:12px;" onclick="backToStatsAwardList()">' +
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>' +
+    '</button>' +
+    '<div class="card">' +
+    '<p class="card-title">' + escapeHtml(data.awardName) + '</p>' +
+    '<p class="body-note" style="margin-bottom:4px;">' + escapeHtml(data.categoryLabel) + '</p>' +
+    '<p class="stats-metric-value" style="font-size:26px;">' + data.total + '</p>' +
+    '<p class="body-note" style="margin-top:2px;margin-bottom:10px;">нагороджених' + (data.year !== 'all' ? ' за ' + escapeHtml(data.year) + ' рік' : '') + '</p>';
+
+  if (data.recipients.length === 0) {
+    html += '<p class="body-note">Немає даних.</p>';
+  } else {
+    data.recipients.forEach(function(r, idx){
+      html += '<div style="border-top:1px solid var(--border-soft);padding-top:8px;' + (idx > 0 ? 'margin-top:8px;' : 'margin-top:2px;') + '">' +
+        '<p class="body-note" style="font-weight:700;color:var(--text-primary);">' + escapeHtml(r.name) + '</p>' +
+        '<p class="body-note" style="margin-top:2px;">' + escapeHtml(r.unit || '—') + ' · ' + escapeHtml(r.year || '—') + (r.orderInfo ? ' · ' + escapeHtml(r.orderInfo) : '') + '</p>' +
+        '</div>';
+    });
+  }
+
+  html += '</div>';
+  body.innerHTML = html;
 }
 
 function renderStatsGeneral(data){
