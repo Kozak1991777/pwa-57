@@ -2125,7 +2125,7 @@ function formatTextBlock(text){
       lines.forEach(function(l, idx){
         var lp = document.createElement('p');
         lp.className = 'body-note';
-        lp.style.paddingLeft = '18px';
+        if (idx === 0) lp.style.textIndent = '1.4em';
         lp.style.marginTop = idx === 0 ? '0' : '4px';
         lp.textContent = l;
         block.appendChild(lp);
