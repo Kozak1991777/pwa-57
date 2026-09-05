@@ -413,6 +413,16 @@ nav.bottombar button.active .indicator{
 }
 #forced-pin-gate.show{display:flex;}
 
+/* ТЕХНІЧНІ РОБОТИ — найвищий z-index серед усіх оверлеїв, перекриває
+   геть усе, включно з замком і будь-якими модалками */
+#maintenance-overlay{
+  position:fixed;inset:0;z-index:500;
+  background:var(--bg);
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  padding:24px;
+}
+#maintenance-overlay.show{display:flex;}
+
 /* LOCK GATE (PIN / біометрія) — той самий вигляд, що auth-gate, вищий z-index,
    бо може накриватись поверх уже видимого #app */
 #lock-gate{
@@ -569,6 +579,18 @@ nav.bottombar button.active .indicator{
 </div>
 
 <!-- Власне спливаюче вікно підтвердження (замість системного confirm()) -->
+<!-- Технічні роботи — повноекранне повідомлення поверх усього застосунку -->
+<div id="maintenance-overlay">
+  <div class="auth-box">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="width:64px;height:64px;margin:0 auto 20px;color:var(--zoloto);">
+      <path d="M14.7 6.3a4 4 0 01-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 015.4-5.4l-2.5 2.5-2-2z"/>
+    </svg>
+    <h2>Технічні роботи</h2>
+    <p class="sub">Застосунок тимчасово недоступний — ведуться технічні роботи. Спробуйте, будь ласка, трохи пізніше.</p>
+    <button class="btn-primary" onclick="location.reload()">Оновити</button>
+  </div>
+</div>
+
 <div id="custom-confirm-overlay">
   <div class="custom-confirm-box">
     <p id="custom-confirm-message"></p>
@@ -948,6 +970,33 @@ nav.bottombar button.active .indicator{
 const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbwJktVQ9C6kpWi8oVb3lSk8CGDxqwkh35x6JwnQgEemlP0ky8qtgK30ZzDseDY9LSXK/exec';
 const AUTH_STORAGE_KEY = 'nagorody_auth';
 const THEME_STORAGE_KEY = 'nagorody_theme';
+
+// ---------- Технічні роботи: глобальний перехоплювач усіх запитів до API ----------
+// Не потребує зміни жодного окремого fetch()-виклику в застосунку: якщо
+// бекенд поверне {ok:false, error:"maintenance"} (вмикається прапорцем
+// CONFIG.MAINTENANCE_MODE у Code.gs), одразу показуємо повноекранне
+// повідомлення поверх усього, незалежно від того, який саме розділ
+// намагався щось завантажити в цей момент.
+(function(){
+  var originalFetch = window.fetch;
+  window.fetch = function(url, opts){
+    return originalFetch(url, opts).then(function(response){
+      if (typeof url === 'string' && url.indexOf(API_BASE_URL) === 0) {
+        response.clone().json().then(function(data){
+          if (data && data.error === 'maintenance') {
+            showMaintenanceOverlay();
+          }
+        }).catch(function(){});
+      }
+      return response;
+    });
+  };
+})();
+
+function showMaintenanceOverlay(){
+  var el = document.getElementById('maintenance-overlay');
+  if (el) el.classList.add('show');
+}
 
 var currentScreen = 'home';
 
