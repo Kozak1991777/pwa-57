@@ -662,8 +662,8 @@ nav.bottombar button.active .indicator{
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
         </div>
         <div>
-          <p class="info-label">Інформація</p>
-          <p id="last-updated">Дані оновлено: —</p>
+          <p class="info-label">Довідково</p>
+          <p id="last-updated">Дані у базі оновлено: —</p>
         </div>
       </div>
     </section>
@@ -978,7 +978,7 @@ function showApp(user, dataUpdatedAt){
   else if (name.length > 16) nameEl.classList.add('name-md');
 
   document.getElementById('user-unit').textContent = user.unit || 'Підрозділ не визначено';
-  document.getElementById('last-updated').textContent = "Дані оновлено: " + (dataUpdatedAt || 'невідомо');
+  document.getElementById('last-updated').textContent = "Дані у базі оновлено: " + (dataUpdatedAt || 'невідомо');
   document.getElementById('auth-gate').classList.add('hidden');
   document.getElementById('app').style.display = 'flex';
 
