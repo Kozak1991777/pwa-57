@@ -2102,10 +2102,11 @@ function getDegreeRank(name){
 function formatTextBlock(text){
   var wrap = document.createElement('div');
   var paragraphs = text.split(/\n\s*\n/);
+  var bulletChars = /^[-•·*●▪‣]/;
   paragraphs.forEach(function(para){
     var lines = para.split('\n').map(function(l){ return l.trim(); }).filter(Boolean);
     if (lines.length === 0) return;
-    var isList = lines.every(function(l){ return l.charAt(0) === '-' || l.charAt(0) === '•'; });
+    var isList = lines.every(function(l){ return bulletChars.test(l); });
     if (isList) {
       var ul = document.createElement('ul');
       ul.style.margin = '4px 0';
@@ -2114,16 +2115,22 @@ function formatTextBlock(text){
         var li = document.createElement('li');
         li.className = 'body-note';
         li.style.marginBottom = '2px';
-        li.textContent = l.replace(/^[-•]\s*/, '');
+        li.textContent = l.replace(/^[-•·*●▪‣]\s*/, '');
         ul.appendChild(li);
       });
       wrap.appendChild(ul);
     } else {
-      var p = document.createElement('p');
-      p.className = 'body-note';
-      p.style.marginTop = '4px';
-      p.textContent = lines.join(' ');
-      wrap.appendChild(p);
+      var block = document.createElement('div');
+      block.style.marginTop = '4px';
+      lines.forEach(function(l, idx){
+        var lp = document.createElement('p');
+        lp.className = 'body-note';
+        lp.style.paddingLeft = '18px';
+        lp.style.marginTop = idx === 0 ? '0' : '4px';
+        lp.textContent = l;
+        block.appendChild(lp);
+      });
+      wrap.appendChild(block);
     }
   });
   return wrap;
