@@ -1072,9 +1072,24 @@ function refreshAuthInBackground(code){
       if (data && data.ok) {
         saveAuth(code, data.user, data.dataUpdatedAt);
         showApp(data.user, data.dataUpdatedAt);
+      } else if (data && data.error === 'invalid_code') {
+        // Код видалено адміном (наприклад, через "Видалити" в адмін-панелі) —
+        // без цього людина лишалась би дивитись на "порожню оболонку" застосунку
+        // з кешованими даними, без жодного натяку, що доступ втрачено.
+        forceLogout('Доступ до застосунку відкликано адміністратором.');
       }
     })
     .catch(function(){ /* офлайн — тихо лишаємо кешовані дані без помилки */ });
+}
+
+function forceLogout(message){
+  localStorage.removeItem(AUTH_STORAGE_KEY);
+  document.getElementById('lock-gate').classList.remove('show');
+  document.getElementById('forced-pin-gate').classList.remove('show');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('auth-gate').classList.remove('hidden');
+  document.getElementById('auth-code-input').value = '';
+  showAuthError(message || 'Сесію завершено. Введіть код доступу ще раз.');
 }
 
 function checkAccessCode(code){
