@@ -928,6 +928,12 @@ nav.bottombar button.active .indicator{
       </div>
 
       <div class="card">
+        <p class="card-title">Режим технічних робіт</p>
+        <p class="body-note" id="maintenance-status" style="margin-top:8px;">Перевіряю статус...</p>
+        <button class="theme-btn" id="maintenance-toggle-btn" style="width:100%;margin-top:10px;" onclick="toggleMaintenanceMode()">...</button>
+      </div>
+
+      <div class="card">
         <p class="card-title">Додати користувача</p>
         <div class="search-input-row" style="margin-top:10px;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
@@ -1641,6 +1647,8 @@ function openAdminStats(){
         return;
       }
 
+      renderMaintenanceToggle(data.maintenanceMode);
+
       var html =
         '<div class="card">' +
         '<p class="card-title">Всього користувачів</p>' +
@@ -1712,6 +1720,46 @@ function openAdminStats(){
     .catch(function(){
       body.innerHTML = '<p class="placeholder-note">Немає з\'єднання з сервером.</p>';
     });
+}
+
+function renderMaintenanceToggle(isOn){
+  var statusEl = document.getElementById('maintenance-status');
+  var btn = document.getElementById('maintenance-toggle-btn');
+
+  if (isOn) {
+    statusEl.innerHTML = 'Зараз: <b style="color:#C0392B;">увімкнено</b> — всі, крім тебе, бачать повідомлення "Технічні роботи".';
+    btn.textContent = 'Вимкнути технічні роботи';
+    btn.classList.remove('active');
+  } else {
+    statusEl.innerHTML = 'Зараз: <b style="color:var(--zoloto);">вимкнено</b> — застосунок працює для всіх як звично.';
+    btn.textContent = 'Увімкнути технічні роботи';
+    btn.classList.add('active');
+  }
+}
+
+function toggleMaintenanceMode(){
+  var btn = document.getElementById('maintenance-toggle-btn');
+  var turningOn = !btn.classList.contains('active'); // якщо зараз кнопка НЕ active — вимкнено, тиснемо щоб увімкнути
+
+  var confirmMsg = turningOn
+    ? 'Увімкнути режим технічних робіт? Усі користувачі, крім тебе, одразу побачать відповідне повідомлення.'
+    : 'Вимкнути режим технічних робіт? Застосунок одразу стане доступним для всіх.';
+
+  showCustomConfirm(confirmMsg, function(){
+    var url = API_BASE_URL + '?action=adminSetMaintenance&code=' + encodeURIComponent(getAuthCode()) + '&enabled=' + (turningOn ? 'true' : 'false');
+    fetch(url)
+      .then(function(res){ return res.json(); })
+      .then(function(data){
+        if (data && data.ok) {
+          renderMaintenanceToggle(data.maintenanceMode);
+        } else {
+          showCustomConfirm('Не вдалося змінити режим. Спробуйте ще раз.', function(){});
+        }
+      })
+      .catch(function(){
+        showCustomConfirm('Немає з\'єднання з сервером.', function(){});
+      });
+  });
 }
 
 function submitAdminAddUser(){
