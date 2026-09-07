@@ -1463,11 +1463,22 @@ document.addEventListener('visibilitychange', function(){
   // решта інформації не "застигали" з моменту першого входу. Якщо на
   // пристрої увімкнено локальний замок — спершу показуємо його поверх
   // застосунку, і тільки після розблокування дозволяємо гортати екрани.
+  // Якщо ж PIN ще НЕ налаштовано (наприклад, людина встановила застосунок
+  // на головний екран, не встигнувши/не захотівши пройти обов'язкове
+  // встановлення PIN одразу після першого входу) — примусовий екран
+  // встановлення PIN показується знову, і так при КОЖНОМУ відкритті, поки
+  // PIN справді не буде збережено. Це закриває обхід, коли збережена сесія
+  // вже є, а PIN так і лишився не встановленим.
   var saved = getSavedAuth();
   if (saved && saved.user) {
-    showApp(saved.user, saved.dataUpdatedAt);
+    document.getElementById('auth-gate').classList.add('hidden');
+    if (!isAppLockEnabled()) {
+      showForcedPinSetup(saved.user, saved.dataUpdatedAt);
+    } else {
+      showApp(saved.user, saved.dataUpdatedAt);
+      showLockGate();
+    }
     refreshAuthInBackground(saved.code);
-    if (isAppLockEnabled()) showLockGate();
     return;
   }
 
