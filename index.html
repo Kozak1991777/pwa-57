@@ -1726,6 +1726,8 @@ function renderMaintenanceToggle(isOn){
   var statusEl = document.getElementById('maintenance-status');
   var btn = document.getElementById('maintenance-toggle-btn');
 
+  btn.dataset.maintenanceOn = isOn ? 'true' : 'false';
+
   if (isOn) {
     statusEl.innerHTML = 'Зараз: <b style="color:#C0392B;">увімкнено</b> — всі, крім тебе, бачать повідомлення "Технічні роботи".';
     btn.textContent = 'Вимкнути технічні роботи';
@@ -1739,7 +1741,7 @@ function renderMaintenanceToggle(isOn){
 
 function toggleMaintenanceMode(){
   var btn = document.getElementById('maintenance-toggle-btn');
-  var turningOn = !btn.classList.contains('active'); // якщо зараз кнопка НЕ active — вимкнено, тиснемо щоб увімкнути
+  var turningOn = btn.dataset.maintenanceOn !== 'true'; // зараз вимкнено -> тиснемо, щоб увімкнути
 
   var confirmMsg = turningOn
     ? 'Увімкнути режим технічних робіт? Усі користувачі, крім тебе, одразу побачать відповідне повідомлення.'
