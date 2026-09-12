@@ -972,6 +972,28 @@ nav.bottombar button.active .indicator{
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
 <script>
+// ---------- Автоматична пропозиція встановити застосунок (лише Android/Chrome) ----------
+// Браузер сам вирішує, коли можна запропонувати встановлення (подія
+// beforeinstallprompt), але за замовчуванням людині треба самій шукати цей
+// пункт в меню "⋮". Тут ми одразу перехоплюємо цю подію і показуємо системне
+// вікно "Встановити додаток" сами, одразу після успішного першого входу —
+// без потреби лізти в меню браузера. Працює тільки в Chrome/Android; у
+// Safari/iOS такої події немає взагалі (там встановлення завжди виключно
+// вручну через "Поділитися → На екран Домівки" — це обмеження самого iOS,
+// обійти його з коду неможливо).
+var deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', function(e){
+  e.preventDefault();
+  deferredInstallPrompt = e;
+});
+
+function offerInstallIfAvailable(){
+  if (deferredInstallPrompt) {
+    deferredInstallPrompt.prompt();
+    deferredInstallPrompt = null;
+  }
+}
+
 // ---------- Налаштування API ----------
 const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbwJktVQ9C6kpWi8oVb3lSk8CGDxqwkh35x6JwnQgEemlP0ky8qtgK30ZzDseDY9LSXK/exec';
 const AUTH_STORAGE_KEY = 'nagorody_auth';
@@ -1164,6 +1186,7 @@ async function saveForcedPinSetup(){
   showApp(pendingForcedUser, pendingForcedDataUpdatedAt);
   pendingForcedUser = null;
   pendingForcedDataUpdatedAt = null;
+  setTimeout(offerInstallIfAvailable, 600); // невелика пауза, щоб застосунок встиг з'явитись на екрані
 }
 
 function submitAuthCode(){
