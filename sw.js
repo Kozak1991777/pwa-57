@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nagorody-57ompbr-v46';
+const CACHE_NAME = 'nagorody-57ompbr-v49';
 const APP_SHELL = [
   './index.html',
   './manifest.json',
